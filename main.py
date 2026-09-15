@@ -20,11 +20,11 @@ def scraping_low_cost_offers():
     pd.set_option('display.max_colwidth', 500)
 
     html = download_or_load_html()
-    prices = parse_offers(html)
+    offers = parse_offers(html)
 
-    print(to_dataframe(prices))
+    print(to_dataframe(offers))
 
-    prices_in_euro = [price.to_euro() for price in prices]
+    prices_in_euro = [offer.to_euro() for offer in offers]
 
     prices_in_euro = to_dataframe(prices_in_euro)
 
