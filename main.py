@@ -26,6 +26,8 @@ def scraping_low_cost_offers():
     for html_list_offers in htmls_list_offers:
         offers.extend(parse_offers(html_list_offers))
     print(len(offers))
+    html_offers = download_html_offers(offers)
+    offers = parse_offers_deep(html_offers, offers)
 
     print("\nВ злотых цена и налог")
     print(to_dataframe(offers))
@@ -43,6 +45,14 @@ def scraping_low_cost_offers():
     print("\nВ евро сума цены и налога")
     print(prices_in_euro_sum_tax)
 
+    prices_in_euro_sum_tax_deposit = price_with_tax_and_deposit_in_euro(prices_in_euro)
+    print("\nВ евро сума цены, налога и депозита")
+    print(prices_in_euro_sum_tax_deposit)
+
+    prices_in_euro_sum_tax_deposit_rieltor = price_with_tax_deposit_and_rieltor_in_euro(prices_in_euro)
+    print("\nВ евро сума цены, налога, депозита и возможной оплаты услуг риелтора")
+    print(prices_in_euro_sum_tax_deposit_rieltor)
+
 
 def price_with_tax_in_euro(prices_in_euro: DataFrame) -> DataFrame:
     tax = prices_in_euro.copy()["tax"]
@@ -51,6 +61,33 @@ def price_with_tax_in_euro(prices_in_euro: DataFrame) -> DataFrame:
     prices_in_euro_sum_tax = prices_in_euro_sum_tax.drop(columns=["tax"])
     prices_in_euro_sum_tax = prices_in_euro_sum_tax.sort_values(by=["price"])
     return prices_in_euro_sum_tax
+
+
+def price_with_tax_and_deposit_in_euro(prices_in_euro: DataFrame) -> DataFrame:
+    tax = prices_in_euro.copy()["tax"]
+    deposit = prices_in_euro.copy()["deposit"]
+    prices_in_euro_sum_tax_and_deposit = prices_in_euro.copy()
+    prices_in_euro_sum_tax_and_deposit["price"] += tax
+    prices_in_euro_sum_tax_and_deposit["price"] += deposit
+    prices_in_euro_sum_tax_and_deposit = prices_in_euro_sum_tax_and_deposit.drop(columns=["tax"])
+    prices_in_euro_sum_tax_and_deposit = prices_in_euro_sum_tax_and_deposit.drop(columns=["deposit"])
+    prices_in_euro_sum_tax_and_deposit = prices_in_euro_sum_tax_and_deposit.sort_values(by=["price"])
+    return prices_in_euro_sum_tax_and_deposit
+
+
+def price_with_tax_deposit_and_rieltor_in_euro(prices_in_euro: DataFrame) -> DataFrame:
+    tax = prices_in_euro.copy()["tax"]
+    deposit = prices_in_euro.copy()["deposit"]
+    price = prices_in_euro.copy()["price"]
+    rieltor = price * 0.5
+    prices_in_euro_sum_tax_and_deposit = prices_in_euro.copy()
+    prices_in_euro_sum_tax_and_deposit["price"] += tax
+    prices_in_euro_sum_tax_and_deposit["price"] += deposit
+    prices_in_euro_sum_tax_and_deposit["price"] += rieltor
+    prices_in_euro_sum_tax_and_deposit = prices_in_euro_sum_tax_and_deposit.drop(columns=["tax"])
+    prices_in_euro_sum_tax_and_deposit = prices_in_euro_sum_tax_and_deposit.drop(columns=["deposit"])
+    prices_in_euro_sum_tax_and_deposit = prices_in_euro_sum_tax_and_deposit.sort_values(by=["price"])
+    return prices_in_euro_sum_tax_and_deposit
 
 
 def parse_offers(html: str) -> list[Offer]:
@@ -78,32 +115,28 @@ def parse_offers(html: str) -> list[Offer]:
 
 
 def parse_offers_deep(htmls: List[str], offers: List[Offer]) -> list[OfferComplete]:
-    DEPOSIT_ROW_NAME = "Kaucja"
     results: List[OfferComplete] = []
     for html, offer in zip(htmls, offers):
         bs: BeautifulSoup = BeautifulSoup(html, "lxml")
         table_descriptions = bs.find("div", attrs={"data-sentry-element": "StyledListContainer"})
-        if not table_descriptions:
-            raise IOError
-        table_description = table_descriptions.find("div")
-        if not table_description:
-            raise IOError
-        deposit_div = table_description.find("div", string=DEPOSIT_ROW_NAME)
-        if not deposit_div:
-            raise IOError
-        deposit_parent = deposit_div.parent
-        if not deposit_parent:
-            raise IOError
-        deposit_row = deposit_parent.find_all("div")
-        if not deposit_row:
-            raise IOError
-        deposit_value = deposit_row[1]
-        if not deposit_value:
-            raise IOError
-        deposit: int|None = None
-        if deposit_value.text.isdigit():
-            deposit = int(deposit_value.text)
-
+        try:
+            if not table_descriptions:
+                raise IOError
+            table_description = table_descriptions.find("div")
+            if not table_description:
+                raise IOError
+            rows_divs = table_description.find_all("div", attrs={"data-sentry-element": "ItemGridContainer"})
+            if not rows_divs:
+                raise IOError
+            deposit_row_div = rows_divs[7].find_all("div")
+            if not deposit_row_div:
+                raise IOError
+            deposit_value = "".join([c for c in deposit_row_div[1].text if c.isdigit() and c != "²"])
+            if not deposit_value:
+                raise IOError
+            deposit: int|None = int(deposit_value)
+        except IOError:
+            deposit = None
         results.append(OfferComplete.from_offer(offer, deposit))
 
     return results
@@ -163,13 +196,14 @@ def download_html_offers(offers: List[Offer]) -> List[str]:
     if not Path("./resource/offers/").exists():
         os.mkdir("./resource/offers/")
     for offer in offers:
+        html = ""
         offer_file_name = hashlib.sha512(offer.url.encode('utf-8')).hexdigest()
         if not Path(f"./resource/offers/{offer_file_name}.html").exists():
             driver = webdriver.Chrome(service=service, options=options)
             try:
-                driver.get(offer.url)
+                driver.get(f"https://www.otodom.pl{offer.url}")
                 print("Page Title:", driver.title)
-                htmls.append(driver.page_source)
+                html = driver.page_source
             finally:
                 driver.quit()
             with open(f"./resource/offers/{offer_file_name}.html", "wt") as file:
@@ -177,6 +211,7 @@ def download_html_offers(offers: List[Offer]) -> List[str]:
         else:
             with open(f"./resource/offers/{offer_file_name}.html", "rt") as file:
                 html = file.read()
+        htmls.append(html)
     return htmls
 
 

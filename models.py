@@ -38,6 +38,27 @@ class PriceOffer:
         result.currency = Currency.EUR
         return result
 
+class PriceOfferComplete(PriceOffer):
+    def __init__(self, price: float, tax: float|None, deposit: float|None):
+        super().__init__(price, tax)
+        self.deposit = deposit
+
+    def to_euro(self):
+        if self.currency == Currency.EUR:
+            return self
+        price = round(self.price / EURO_TO_ZLOTY_EXCHANGE_RATE, 2)
+        tax = None
+        if self.tax:
+            tax = round(self.tax / EURO_TO_ZLOTY_EXCHANGE_RATE, 2)
+        deposit = None
+        if self.deposit:
+            deposit = round(self.deposit / EURO_TO_ZLOTY_EXCHANGE_RATE, 2)
+        result = PriceOfferComplete(price, tax, deposit)
+        result.currency = Currency.EUR
+
+        return result
+
+
 class Offer:
     def __init__(self, price: PriceOffer, url: str):
         self.price = price
@@ -47,10 +68,10 @@ class Offer:
         return Offer(self.price.to_euro(), self.url)
 
 class OfferComplete(Offer):
-    def __init__(self, price: PriceOffer, deposit: float|None, url: str):
+    def __init__(self, price: PriceOfferComplete, url: str):
         super().__init__(price, url)
-        self.deposit = deposit
 
     @staticmethod
     def from_offer(offer: Offer, deposit: float|None) -> OfferComplete:
-        return OfferComplete(offer.price, deposit, offer.url)
+        price_complete = PriceOfferComplete(offer.price.price, offer.price.tax, deposit)
+        return OfferComplete(price_complete, offer.url)
