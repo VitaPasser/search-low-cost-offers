@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List
+from typing import List, Self
 
 from pandas import DataFrame
 
@@ -11,7 +11,7 @@ class Currency(Enum):
     EUR = "EUR"
 
 
-def to_dataframe(offers: List[Offer]):
+def to_dataframe(offers: List[Offer]|List[OfferComplete]) -> DataFrame:
     offer_list = []
     for offer in offers:
         offer_dict = offer.__dict__.copy()
@@ -30,12 +30,13 @@ class PriceOffer:
     def to_euro(self):
         if self.currency == Currency.EUR:
             return self
-        self.currency = Currency.EUR
         price = round(self.price / EURO_TO_ZLOTY_EXCHANGE_RATE, 2)
         tax = self.tax
         if self.tax:
             tax = round(self.tax / EURO_TO_ZLOTY_EXCHANGE_RATE, 2)
-        return PriceOffer(price, tax)
+        result = PriceOffer(price, tax)
+        result.currency = Currency.EUR
+        return result
 
 class Offer:
     def __init__(self, price: PriceOffer, url: str):
@@ -44,3 +45,12 @@ class Offer:
 
     def to_euro(self):
         return Offer(self.price.to_euro(), self.url)
+
+class OfferComplete(Offer):
+    def __init__(self, price: PriceOffer, deposit: float|None, url: str):
+        super().__init__(price, url)
+        self.deposit = deposit
+
+    @staticmethod
+    def from_offer(offer: Offer, deposit: float|None) -> OfferComplete:
+        return OfferComplete(offer.price, deposit, offer.url)
