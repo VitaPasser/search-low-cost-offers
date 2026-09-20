@@ -1,11 +1,12 @@
-from sqlalchemy import String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlmodel import Field
 
+from src.home_offer.money.cuerrency.encoder import CurrencyEncode
+from src.home_offer.money.cuerrency.model import Currency
 from src.utils.models import BaseModel
 
 
-class MoneyModel(BaseModel):
+class MoneyModel(BaseModel, table=True):
     __tablename__ = "money"
 
-    amount: Mapped[float] = mapped_column(nullable=False)
-    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    amount: float
+    currency: Currency = Field(sa_type=CurrencyEncode, default=Currency.ZLO)

@@ -1,14 +1,11 @@
-from enum import Enum
 from typing import List
 
 from pandas import DataFrame
 
+from src.home_offer.money.cuerrency.model import Currency
+
 EURO_TO_ZLOTY_EXCHANGE_RATE = 4.3
 
-
-class Currency(Enum):
-    ZLO = "ZLO"
-    EUR = "EUR"
 
 
 def to_dataframe(offers: List[Offer] | List[OfferComplete]) -> DataFrame:

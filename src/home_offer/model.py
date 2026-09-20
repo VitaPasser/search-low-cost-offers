@@ -1,45 +1,57 @@
 from datetime import datetime
-from typing import Optional
 
-from sqlalchemy import String, ForeignKey, Boolean, DateTime
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlmodel import Field, Relationship
 
+from src.home_offer.money.model import MoneyModel
 from src.utils.models import BaseModel
 
 
-class HouseOfferModel(BaseModel):
+class HouseOfferModel(BaseModel, table=True):
     __tablename__ = "house_offers"
 
-    id_url: Mapped[str] = mapped_column(String, nullable=False, unique=True)
-    url: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    id_url: str = Field(unique=True)
+    url: str = Field(unique=True)
 
-    price_id: Mapped[int] = mapped_column(ForeignKey("money.id"), nullable=False)
-    price: Mapped["MoneyModel"] = relationship(
-        foreign_keys=[price_id],
-        cascade="all, delete-orphan",
-        single_parent=True
+    price_id: int | None = Field(default=None, foreign_key="money.id")
+    price: MoneyModel = Relationship(
+        sa_relationship_kwargs={
+            "primaryjoin": "HouseOfferModel.price_id == MoneyModel.id",
+            "cascade": "all, delete-orphan",
+            "single_parent": True,
+            "lazy": "selectin"
+        }
     )
 
-    tax_id: Mapped[int | None] = mapped_column(ForeignKey("money.id"), nullable=True)
-    tax: Mapped[Optional["MoneyModel"]] = relationship(
-        foreign_keys=[tax_id],
-        cascade="all, delete-orphan",
-        single_parent=True
+    tax_id: int | None = Field(default=None, foreign_key="money.id")
+    tax: MoneyModel | None = Relationship(
+        sa_relationship_kwargs={
+            "primaryjoin": "HouseOfferModel.tax_id == MoneyModel.id",
+            "cascade": "all, delete-orphan",
+            "single_parent": True,
+            "lazy": "selectin"
+        }
     )
 
-    deposit_id: Mapped[int | None] = mapped_column(ForeignKey("money.id"), nullable=True)
-    deposit: Mapped[Optional["MoneyModel"]] = relationship(
-        foreign_keys=[deposit_id],
-        cascade="all, delete-orphan",
-        single_parent=True
+    deposit_id: int | None = Field(default=None, foreign_key="money.id")
+    deposit: MoneyModel | None = Relationship(
+        sa_relationship_kwargs={
+            "primaryjoin": "HouseOfferModel.deposit_id == MoneyModel.id",
+            "cascade": "all, delete-orphan",
+            "single_parent": True,
+            "lazy": "selectin"
+        }
     )
 
-    realtor_service_id: Mapped[int | None] = mapped_column(ForeignKey("money.id"), nullable=True)
-    realtor_service: Mapped[Optional["MoneyModel"]] = relationship(
-        foreign_keys=[realtor_service_id],
-        cascade="all, delete-orphan",
-        single_parent=True
+    realtor_service_id: int | None = Field(default=None, foreign_key="money.id")
+    realtor_service: MoneyModel | None = Relationship(
+        sa_relationship_kwargs={
+            "primaryjoin": "HouseOfferModel.realtor_service_id == MoneyModel.id",
+            "cascade": "all, delete-orphan",
+            "single_parent": True,
+            "lazy": "selectin"
+        }
     )
-    is_has_been_realtor_services: Mapped[bool] = mapped_column(Boolean, nullable=False)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, nullable=False)
+    is_has_been_realtor_services: bool
+
+    created_at: datetime|None = Field(default_factory=datetime.now, nullable=False)
