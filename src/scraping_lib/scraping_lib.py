@@ -5,25 +5,22 @@ from bs4 import BeautifulSoup, Tag
 from bs4.element import AttributeValueList
 from pandas import DataFrame
 
-from src.scraping_lib.download_html_home_offers import downloader_Html_houses_offers_default_webdriver
+from scraping_lib.download_html_home_offers import download_html_offers, download_or_load_list_html
 from src.scraping_lib.models import to_dataframe, Offer, OfferComplete, PriceOfferComplete
 
 
 def scraping_low_cost_offers():
-
     pd.set_option('display.max_columns', 100)
     pd.set_option('display.max_rows', 100)
     pd.set_option('display.width', 2000)
     pd.set_option('display.max_colwidth', 500)
 
-    downloader = downloader_Html_houses_offers_default_webdriver
-
-    htmls_list_offers = downloader.download_or_load_list_html()
+    htmls_list_offers = download_or_load_list_html()
     offers: List[Offer] = []
     for html_list_offers in htmls_list_offers:
         offers.extend(parse_offers(html_list_offers))
     print(len(offers))
-    html_offers = downloader.download_html_offers(offers)
+    html_offers = download_html_offers(offers)
     offers = parse_offers_deep(html_offers, offers)
 
     print("\nВ злотых цена и налог")
@@ -131,7 +128,7 @@ def parse_offers_deep(htmls: List[str], offers: List[Offer]) -> list[OfferComple
             deposit_value = "".join([c for c in deposit_row_div[1].text if c.isdigit() and c != "²"])
             if not deposit_value:
                 raise IOError
-            deposit: int|None = int(deposit_value)
+            deposit: int | None = int(deposit_value)
         except IOError:
             deposit = None
         results.append(OfferComplete.from_offer(offer, deposit))

@@ -1,5 +1,5 @@
-from src.scraping_lib.models import PriceOfferComplete
 from src.home_offer.money.model import MoneyModel
+from src.scraping_lib.models import PriceOfferComplete
 
 
 def price_offer_to_monies(price_offer: PriceOfferComplete):

@@ -11,18 +11,19 @@ class Currency(Enum):
     EUR = "EUR"
 
 
-def to_dataframe(offers: List[Offer]|List[OfferComplete]) -> DataFrame:
+def to_dataframe(offers: List[Offer] | List[OfferComplete]) -> DataFrame:
     offer_list = []
     for offer in offers:
         offer_dict = offer.__dict__.copy()
         offer_dict.update(offer.price.__dict__)
-        offer_dict['url'] = "https://www.otodom.pl"+offer.url
+        offer_dict['url'] = "https://www.otodom.pl" + offer.url
         offer_list.append(offer_dict)
     return DataFrame(offer_list)
 
 
 class PriceOfferComplete:
-    def __init__(self, price: float, tax: float|None, deposit: float|None = None, realtor_services:float|None = None):
+    def __init__(self, price: float, tax: float | None, deposit: float | None = None,
+                 realtor_services: float | None = None):
         self.price = price
         self.tax = tax
         self.deposit = deposit
@@ -59,11 +60,12 @@ class Offer:
     def to_euro(self):
         return Offer(self.price.to_euro(), self.url)
 
+
 class OfferComplete(Offer):
     def __init__(self, price: PriceOfferComplete, url: str):
         super().__init__(price, url)
 
     @staticmethod
-    def from_offer(offer: Offer, deposit: float|None) -> OfferComplete:
+    def from_offer(offer: Offer, deposit: float | None) -> OfferComplete:
         price_complete = PriceOfferComplete(offer.price.price, offer.price.tax, deposit)
         return OfferComplete(price_complete, offer.url)

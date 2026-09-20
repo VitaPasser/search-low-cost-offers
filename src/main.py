@@ -14,6 +14,6 @@ app.conf.update(timezone='Europe/Kyiv',
                 include=['src.home_offer.tasks'])
 app.autodiscover_tasks(["src.home_offer.tasks"])
 
-
 from src.home_offer import tasks
+
 app.on_after_configure.connect(tasks.setup_periodic_tasks)

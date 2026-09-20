@@ -1,8 +1,7 @@
 from celery import Celery, shared_task
 from celery.schedules import crontab
 
-from scraping_lib.download_html_home_offers import downloader_Html_houses_offers_default_webdriver
-from src.home_offer.services import HomeOfferService
+from src.home_offer.services import grab_offers
 from src.utils.db.sqlalchemy import engine
 
 
@@ -21,5 +20,4 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
 
 @shared_task(name='src.home_offer.tasks.grab_house_offers')
 def grab_house_offers():
-    service = HomeOfferService(downloader=downloader_Html_houses_offers_default_webdriver)
-    service.grab_offers(engine=engine)
+    grab_offers(engine=engine)
