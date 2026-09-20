@@ -1,24 +1,12 @@
-import hashlib
-import os
-from pathlib import Path
 from typing import List
 
 import pandas as pd
 from bs4 import BeautifulSoup, Tag
 from bs4.element import AttributeValueList
-from dotenv import load_dotenv
 from pandas import DataFrame
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 
+from src.scraping_lib.download_html_home_offers import downloader_Html_houses_offers_default_webdriver
 from src.scraping_lib.models import to_dataframe, Offer, OfferComplete, PriceOfferComplete
-
-PROJECT_ROOT = Path(__file__).parent.parent.parent
-load_dotenv(f"{PROJECT_ROOT}/.env")
-WEB_DRIVER_PATH = os.getenv("WEB_DRIVER_PATH")
-if not WEB_DRIVER_PATH:
-    WEB_DRIVER_PATH="/home/dev/app/chromium.chromedriver"
 
 
 def scraping_low_cost_offers():
@@ -28,12 +16,14 @@ def scraping_low_cost_offers():
     pd.set_option('display.width', 2000)
     pd.set_option('display.max_colwidth', 500)
 
-    htmls_list_offers = download_or_load_list_html()
+    downloader = downloader_Html_houses_offers_default_webdriver
+
+    htmls_list_offers = downloader.download_or_load_list_html()
     offers: List[Offer] = []
     for html_list_offers in htmls_list_offers:
         offers.extend(parse_offers(html_list_offers))
     print(len(offers))
-    html_offers = download_html_offers(offers)
+    html_offers = downloader.download_html_offers(offers)
     offers = parse_offers_deep(html_offers, offers)
 
     print("\nВ злотых цена и налог")
@@ -147,81 +137,6 @@ def parse_offers_deep(htmls: List[str], offers: List[Offer]) -> list[OfferComple
         results.append(OfferComplete.from_offer(offer, deposit))
 
     return results
-
-
-def download_or_load_list_html(cache: bool = True) -> List[str]:
-    htmls = []
-    if not Path(f"{PROJECT_ROOT}/resource/offers-list/").exists():
-        os.mkdir(f"{PROJECT_ROOT}/resource/offers-list")
-    if not Path(f"{PROJECT_ROOT}/resource/offers-list/index-1.html").exists() or not cache:
-        options = Options()
-        options.add_argument('--no-sandbox')  # Отключает песочницу (критично для Docker/root)
-        options.add_argument('--disable-dev-shm-usage')  # Использует /tmp вместо ограниченного /dev/shm
-
-        service = Service(executable_path=WEB_DRIVER_PATH)
-
-        pagination_number_start:int = 1
-        htmls.append(download_offers_list_page(service, options, pagination_number_start))
-        bs = BeautifulSoup(htmls[0], "lxml")
-        pagination_list = bs.find("ul", attrs={"data-nx-name": "Pagination"})
-        if not pagination_list:
-            raise IOError
-        pagination_elements = pagination_list.find_all("li")
-        if not pagination_elements:
-            raise IOError
-        pagination_number_max = int(pagination_elements[-2].text)
-        for pagination_number in range(pagination_number_start + 1, pagination_number_max + 1):
-            htmls.append(download_offers_list_page(service, options, pagination_number))
-
-    else:
-        max_pagination_len = len(os.listdir(f"{PROJECT_ROOT}/resource/offers-list/"))
-        for pagination_number in range(1, max_pagination_len+1):
-            with open(f"{PROJECT_ROOT}/resource/offers-list/index-{pagination_number}.html", "rt") as file:
-                htmls.append(file.read())
-    return htmls
-
-
-def download_offers_list_page(service: Service, options: Options, pagination_number: int) -> str:
-    driver = webdriver.Chrome(service=service, options=options)
-    url = f"https://www.otodom.pl/pl/wyniki/wynajem/mieszkanie,2-pokoje/lodzkie/lodz/lodz/lodz?limit=36&priceMax=1700&by=DEFAULT&direction=DESC&page={pagination_number}"
-    try:
-        driver.get(url)
-        print("Page Title:", driver.title)
-        html = driver.page_source
-    finally:
-        driver.quit()
-    with open(f"{PROJECT_ROOT}/resource/offers-list/index-{pagination_number}.html", "wt") as file:
-        file.write(html)
-    return html
-
-
-def download_html_offers(offers: List[Offer]) -> List[str]:
-    htmls: List[str] = []
-    options = Options()
-    options.add_argument('--no-sandbox')  # Отключает песочницу (критично для Docker/root)
-    options.add_argument('--disable-dev-shm-usage')  # Использует /tmp вместо ограниченного /dev/shm
-
-    service = Service(executable_path=WEB_DRIVER_PATH)
-    if not Path(f"{PROJECT_ROOT}/resource/offers/").exists():
-        os.mkdir(f"{PROJECT_ROOT}/resource/offers/")
-    for offer in offers:
-        html = ""
-        offer_file_name = hashlib.sha512(offer.url.encode('utf-8')).hexdigest()
-        if not Path(f"{PROJECT_ROOT}/resource/offers/{offer_file_name}.html").exists():
-            driver = webdriver.Chrome(service=service, options=options)
-            try:
-                driver.get(f"https://www.otodom.pl{offer.url}")
-                print("Page Title:", driver.title)
-                html = driver.page_source
-            finally:
-                driver.quit()
-            with open(f"{PROJECT_ROOT}/resource/offers/{offer_file_name}.html", "wt") as file:
-                file.write(html)
-        else:
-            with open(f"{PROJECT_ROOT}/resource/offers/{offer_file_name}.html", "rt") as file:
-                html = file.read()
-        htmls.append(html)
-    return htmls
 
 
 def price_ordering(price_tags: Tag):
