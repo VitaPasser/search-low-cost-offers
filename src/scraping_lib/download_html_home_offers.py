@@ -10,7 +10,7 @@ from playwright_stealth import Stealth
 
 from src.scraping_lib.constants import PROJECT_ROOT
 from src.scraping_lib.models import Offer
-from src.scraping_lib.utils.generate_session import PATH_SESSION_DIRECTORY
+from src.scraping_lib.constants import PATH_SESSION_DIRECTORY
 
 
 def get_response(url: str, p: Playwright, session) -> tuple[Browser, Page]:

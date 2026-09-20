@@ -4,7 +4,7 @@ from unittest import TestCase
 from sqlalchemy import create_engine, Select
 from sqlalchemy.orm import Session
 
-from home_offer.services import grab_offers
+from src.home_offer.services import grab_offers
 from src.home_offer.model import HouseOfferModel
 from src.utils.models import BaseModel
 

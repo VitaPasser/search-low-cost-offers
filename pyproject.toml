@@ -12,6 +12,5 @@ dependencies = [
     "playwright>=1.63.0",
     "playwright-stealth>=2.0.3",
     "python-dotenv>=1.2.3",
-    "selenium>=4.49.0",
     "sqlalchemy>=2.0.54",
 ]

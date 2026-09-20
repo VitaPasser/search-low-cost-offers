@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup, Tag
 from bs4.element import AttributeValueList
 from pandas import DataFrame
 
-from scraping_lib.download_html_home_offers import download_html_offers, download_or_load_list_html
+from src.scraping_lib.download_html_home_offers import download_html_offers, download_or_load_list_html
 from src.scraping_lib.models import to_dataframe, Offer, OfferComplete, PriceOfferComplete
 
 

@@ -1,0 +1,32 @@
+services:
+  observer_houses_offers:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    volumes:
+      - ./db.sqlite:/home/dev/app/db.sqlite
+      - ./resource:/home/dev/app/resource
+      - ${WEB_DRIVER_PATH}:/home/dev/app/chromium.chromedriver:ro
+    environment:
+      - REDIS_HOST=redis
+      - IS_TESTING=0
+    depends_on:
+      - redis
+    networks:
+      - observer_network
+
+  redis:
+    image: redis:8.10.1
+    container_name: shop-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - observer_network
+
+volumes:
+  redis_data:
+
+networks:
+  observer_network:

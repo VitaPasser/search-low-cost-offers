@@ -3,11 +3,11 @@ from typing import List
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
-from scraping_lib.download_html_home_offers import download_or_load_list_html, download_html_offers
+from src.scraping_lib.download_html_home_offers import download_or_load_list_html, download_html_offers
 from src.home_offer.model import HouseOfferModel
 from src.home_offer.money.services import price_offer_to_monies
 from src.scraping_lib.models import Offer, OfferComplete
-from src.scraping_lib.scraping_lib import parse_offers, parse_offers_deep
+from src.scraping_lib.scraping import parse_offers, parse_offers_deep
 
 
 def house_offer_to_model(offer: OfferComplete) -> HouseOfferModel:

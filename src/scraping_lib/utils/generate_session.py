@@ -5,11 +5,7 @@ import os
 from playwright.async_api import async_playwright
 from playwright_stealth import Stealth
 
-from scraping_lib.constants import PROJECT_ROOT
-
-URL = "https://www.otodom.pl/pl/wyniki/wynajem/mieszkanie,2-pokoje/lodzkie/lodz/lodz/lodz?limit=36&priceMax=1700&by=DEFAULT&direction=DESC"
-PATH_SESSIONS_DIRECTORY = f'{PROJECT_ROOT}/resource/sessions'
-PATH_SESSION_DIRECTORY = f"{PATH_SESSIONS_DIRECTORY}/otodom_session.json"
+from scraping_lib.constants import URL, PATH_SESSIONS_DIRECTORY, PATH_SESSION_DIRECTORY
 
 
 async def save_session():
