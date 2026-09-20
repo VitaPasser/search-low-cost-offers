@@ -1,3 +1,6 @@
 resource
 .venv
 .env
+# Databases
+db.sqlite
+celerybeat-schedule
