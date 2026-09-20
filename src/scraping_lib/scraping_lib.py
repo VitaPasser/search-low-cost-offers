@@ -6,12 +6,19 @@ from typing import List
 import pandas as pd
 from bs4 import BeautifulSoup, Tag
 from bs4.element import AttributeValueList
+from dotenv import load_dotenv
 from pandas import DataFrame
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 
-from models import PriceOffer, to_dataframe, Offer, OfferComplete
+from src.scraping_lib.models import to_dataframe, Offer, OfferComplete, PriceOfferComplete
+
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+load_dotenv(f"{PROJECT_ROOT}/.env")
+WEB_DRIVER_PATH = os.getenv("WEB_DRIVER_PATH")
+if not WEB_DRIVER_PATH:
+    WEB_DRIVER_PATH="/home/dev/app/chromium.chromedriver"
 
 
 def scraping_low_cost_offers():
@@ -142,15 +149,16 @@ def parse_offers_deep(htmls: List[str], offers: List[Offer]) -> list[OfferComple
     return results
 
 
-def download_or_load_list_html() -> List[str]:
+def download_or_load_list_html(cache: bool = True) -> List[str]:
     htmls = []
-    if not Path("./resource/offers-list/").exists():
-        os.mkdir("./resource/offers-list")
-    if not Path('./resource/offers-list/index-1.html').exists():
+    if not Path(f"{PROJECT_ROOT}/resource/offers-list/").exists():
+        os.mkdir(f"{PROJECT_ROOT}/resource/offers-list")
+    if not Path(f"{PROJECT_ROOT}/resource/offers-list/index-1.html").exists() or not cache:
         options = Options()
-        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument('--no-sandbox')  # Отключает песочницу (критично для Docker/root)
+        options.add_argument('--disable-dev-shm-usage')  # Использует /tmp вместо ограниченного /dev/shm
 
-        service = Service(executable_path="/snap/bin/chromium.chromedriver")
+        service = Service(executable_path=WEB_DRIVER_PATH)
 
         pagination_number_start:int = 1
         htmls.append(download_offers_list_page(service, options, pagination_number_start))
@@ -166,9 +174,9 @@ def download_or_load_list_html() -> List[str]:
             htmls.append(download_offers_list_page(service, options, pagination_number))
 
     else:
-        max_pagination_len = len(os.listdir("./resource/offers-list/"))
+        max_pagination_len = len(os.listdir(f"{PROJECT_ROOT}/resource/offers-list/"))
         for pagination_number in range(1, max_pagination_len+1):
-            with open(f"./resource/offers-list/index-{pagination_number}.html", "rt") as file:
+            with open(f"{PROJECT_ROOT}/resource/offers-list/index-{pagination_number}.html", "rt") as file:
                 htmls.append(file.read())
     return htmls
 
@@ -182,7 +190,7 @@ def download_offers_list_page(service: Service, options: Options, pagination_num
         html = driver.page_source
     finally:
         driver.quit()
-    with open(f"./resource/offers-list/index-{pagination_number}.html", "wt") as file:
+    with open(f"{PROJECT_ROOT}/resource/offers-list/index-{pagination_number}.html", "wt") as file:
         file.write(html)
     return html
 
@@ -190,15 +198,16 @@ def download_offers_list_page(service: Service, options: Options, pagination_num
 def download_html_offers(offers: List[Offer]) -> List[str]:
     htmls: List[str] = []
     options = Options()
-    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument('--no-sandbox')  # Отключает песочницу (критично для Docker/root)
+    options.add_argument('--disable-dev-shm-usage')  # Использует /tmp вместо ограниченного /dev/shm
 
-    service = Service(executable_path="/snap/bin/chromium.chromedriver")
-    if not Path("./resource/offers/").exists():
-        os.mkdir("./resource/offers/")
+    service = Service(executable_path=WEB_DRIVER_PATH)
+    if not Path(f"{PROJECT_ROOT}/resource/offers/").exists():
+        os.mkdir(f"{PROJECT_ROOT}/resource/offers/")
     for offer in offers:
         html = ""
         offer_file_name = hashlib.sha512(offer.url.encode('utf-8')).hexdigest()
-        if not Path(f"./resource/offers/{offer_file_name}.html").exists():
+        if not Path(f"{PROJECT_ROOT}/resource/offers/{offer_file_name}.html").exists():
             driver = webdriver.Chrome(service=service, options=options)
             try:
                 driver.get(f"https://www.otodom.pl{offer.url}")
@@ -206,10 +215,10 @@ def download_html_offers(offers: List[Offer]) -> List[str]:
                 html = driver.page_source
             finally:
                 driver.quit()
-            with open(f"./resource/offers/{offer_file_name}.html", "wt") as file:
+            with open(f"{PROJECT_ROOT}/resource/offers/{offer_file_name}.html", "wt") as file:
                 file.write(html)
         else:
-            with open(f"./resource/offers/{offer_file_name}.html", "rt") as file:
+            with open(f"{PROJECT_ROOT}/resource/offers/{offer_file_name}.html", "rt") as file:
                 html = file.read()
         htmls.append(html)
     return htmls
@@ -226,7 +235,7 @@ def price_ordering(price_tags: Tag):
     tax = None
     if "czynsz" in tax_text:
         tax = int("".join([c for c in tax_text if c.isdigit() and c != "²"]))
-    return PriceOffer(price, tax)
+    return PriceOfferComplete(price, tax)
 
 
 if __name__ == '__main__':
