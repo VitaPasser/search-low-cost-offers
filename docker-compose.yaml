@@ -9,7 +9,7 @@ services:
       - ${WEB_DRIVER_PATH}:/home/dev/app/chromium.chromedriver:ro
     environment:
       - REDIS_HOST=redis
-      - IS_TESTING=1
+      - IS_TESTING=0
     depends_on:
       - redis
     networks:
