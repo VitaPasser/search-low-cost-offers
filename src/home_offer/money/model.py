@@ -1,12 +1,12 @@
-from sqlmodel import Field
+from sqlalchemy import Enum
+from sqlalchemy.orm import Mapped, mapped_column
 
-from src.home_offer.money.cuerrency.encoder import CurrencyEncode
 from src.home_offer.money.cuerrency.model import Currency
 from src.utils.models import BaseModel
 
 
-class MoneyModel(BaseModel, table=True):
+class MoneyModel(BaseModel):
     __tablename__ = "money"
 
-    amount: float
-    currency: Currency = Field(sa_type=CurrencyEncode, default=Currency.ZLO)
+    amount: Mapped[float] = mapped_column(nullable=False)
+    currency: Mapped[Currency] = mapped_column(Enum(Currency, native_enum=False, length=3), nullable=False, default=Currency.EUR)

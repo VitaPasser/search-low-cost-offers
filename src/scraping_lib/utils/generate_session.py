@@ -5,7 +5,7 @@ import os
 from playwright.async_api import async_playwright
 from playwright_stealth import Stealth
 
-from scraping_lib.constants import URL, PATH_SESSIONS_DIRECTORY, PATH_SESSION_DIRECTORY
+from src.scraping_lib.constants import URL, PATH_SESSIONS_DIRECTORY, PATH_SESSION_DIRECTORY
 
 
 async def save_session():

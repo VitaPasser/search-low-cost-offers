@@ -6,7 +6,6 @@ from unittest import TestCase
 from sqlalchemy import create_engine, Select
 from sqlalchemy.orm import Session
 
-from home_offer.dto import HouseOfferRead
 from src.home_offer.money.cuerrency.model import Currency
 from src.home_offer.services import HomeOfferService
 from src.home_offer.model import HouseOfferModel
@@ -40,7 +39,7 @@ class TestHomeOffer(TestCase):
         self.service.grab_offers(True)
         offers = self.service.get_all()
         self.assertGreaterEqual(len(offers), 10)
-        pprint([offer.model_dump() for offer in offers])
+        pprint(offers)
 
 
     def test_get_all_in_euro(self):
@@ -49,7 +48,7 @@ class TestHomeOffer(TestCase):
         self.assertGreaterEqual(len(offers), 10)
         for offer in offers:
             self.assertEqual(offer.price.currency, Currency.EUR)
-        pprint([offer.model_dump() for offer in offers])
+        pprint(offers)
 
 
 

@@ -4,12 +4,12 @@ services:
       context: .
       dockerfile: ./Dockerfile
     volumes:
-      - ./db.sqlite:/home/dev/app/db.sqlite
+      - ./data/:/home/dev/app/data/
       - ./resource:/home/dev/app/resource
       - ${WEB_DRIVER_PATH}:/home/dev/app/chromium.chromedriver:ro
     environment:
       - REDIS_HOST=redis
-      - IS_TESTING=0
+      - IS_TESTING=1
     depends_on:
       - redis
     networks:

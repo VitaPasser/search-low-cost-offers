@@ -1,10 +1,9 @@
-from sqlmodel import SQLModel
+from dataclasses import dataclass
 
-from home_offer.money.cuerrency.model import Currency
+from src.home_offer.money.cuerrency.model import Currency
 
 
-class MoneyRead(SQLModel):
-    model_config = {"from_attributes": True}
-
+@dataclass
+class MoneyDTO:
     amount: float
     currency: Currency
