@@ -5,7 +5,7 @@ from unittest import TestCase
 from sqlalchemy import create_engine, Select
 from sqlalchemy.orm import Session
 
-from home_offer.dto import HouseOfferDTO
+from src.home_offer.dto import HouseOfferDTO
 from src.home_offer.dto import HouseOfferSumDTO
 from src.home_offer.model import HouseOfferModel
 from src.home_offer.money.cuerrency.model import Currency
