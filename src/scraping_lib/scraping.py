@@ -5,7 +5,8 @@ from bs4 import BeautifulSoup, Tag
 from bs4.element import AttributeValueList
 from pandas import DataFrame
 
-from src.scraping_lib.download_html_home_offers import download_html_offers, download_or_load_list_html
+from src.scraping_lib.constants import OTODOM_DOMAIN_URL, OTODOM_URL_LIST, OTODOM_NAME
+from src.scraping_lib.download_html_home_offers import pagination_max_number_scraper, DownloadHtmlHomeOffersService
 from src.scraping_lib.models import to_dataframe, Offer, OfferComplete, PriceOfferComplete
 
 
@@ -15,12 +16,20 @@ def scraping_low_cost_offers():
     pd.set_option('display.width', 2000)
     pd.set_option('display.max_colwidth', 500)
 
-    htmls_list_offers = download_or_load_list_html()
+
+    service = DownloadHtmlHomeOffersService(
+        domain_url=OTODOM_DOMAIN_URL,
+        url_list=OTODOM_URL_LIST,
+        name=OTODOM_NAME,
+        pagination_number_max_scraper=pagination_max_number_scraper
+    )
+
+    htmls_list_offers = service.download_or_load_list_html()
     offers: List[Offer] = []
     for html_list_offers in htmls_list_offers:
         offers.extend(parse_offers(html_list_offers))
     print(len(offers))
-    html_offers = download_html_offers(offers)
+    html_offers = service.download_html_offers(offers)
     offers = parse_offers_deep(html_offers, offers)
 
     print("\nВ злотых цена и налог")

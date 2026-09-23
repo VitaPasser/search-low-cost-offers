@@ -5,7 +5,7 @@ import os
 from playwright.async_api import async_playwright
 from playwright_stealth import Stealth
 
-from src.scraping_lib.constants import URL, PATH_SESSIONS_DIRECTORY, PATH_SESSION_DIRECTORY
+from src.scraping_lib.constants import OTODOM_URL_LIST, PATH_SESSIONS_DIRECTORY, PATH_SESSION_DIRECTORY
 
 
 async def save_session():
@@ -15,7 +15,7 @@ async def save_session():
         page = await context.new_page()
 
         print("[*] Переходим на страницу в GUI режиме...")
-        await page.goto(URL)
+        await page.goto(OTODOM_URL_LIST)
         await page.wait_for_timeout(5000)
 
         cookies = await context.cookies()
