@@ -1,9 +1,14 @@
+from src.home_offer.money.dto import MoneyDTO
 from src.home_offer.money.cuerrency.model import Currency
 from src.home_offer.money.model import MoneyModel
 from src.scraping_lib.models import PriceOfferComplete
 
 
-def price_offer_to_monies(price_offer: PriceOfferComplete):
+def money_model_to_money_dto(money: MoneyModel) -> MoneyDTO:
+    return MoneyDTO(amount=money.amount, currency=money.currency)
+
+
+def price_offer_complete_to_monies(price_offer: PriceOfferComplete):
     model_price = MoneyModel(
         currency=price_offer.currency,
         amount=price_offer.price
@@ -36,8 +41,7 @@ def price_offer_to_monies(price_offer: PriceOfferComplete):
 EURO_TO_ZLOTY_EXCHANGE_RATE = 4.3
 
 
-def money_to_euro(money_in_zloty: MoneyModel):
-    money_in_euro = MoneyModel(**money_in_zloty.model_dump())
-    money_in_euro.currency = Currency.EUR
-    money_in_euro.amount = money_in_zloty.amount / EURO_TO_ZLOTY_EXCHANGE_RATE
-    return money_in_euro
+def money_to_euro(money_in_zloty: MoneyDTO) -> MoneyDTO:
+    currency = Currency.EUR
+    amount = money_in_zloty.amount / EURO_TO_ZLOTY_EXCHANGE_RATE
+    return MoneyDTO(amount=amount, currency=currency)

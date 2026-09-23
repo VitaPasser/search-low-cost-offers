@@ -1,6 +1,6 @@
-from sqlmodel import SQLModel, Field
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
-class BaseModel(SQLModel, table=False):
+class BaseModel(DeclarativeBase):
     __table_args__ = {'extend_existing': True}
-    id: int|None = Field(default=None, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

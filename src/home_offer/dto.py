@@ -1,28 +1,31 @@
 import datetime
+from dataclasses import dataclass
 
-from sqlmodel import SQLModel
-
-from home_offer.money.dto import MoneyRead
+from src.home_offer.money.dto import MoneyDTO
 
 
-class HouseOfferRead(SQLModel):
-    model_config = {"from_attributes": True}
-
+@dataclass
+class BaseHouseOfferDTO:
+    id: int
     id_url: str
     url: str
 
-    price_id: int | None
-    price: MoneyRead
-
-    tax_id: int | None
-    tax: MoneyRead | None
-
-    deposit_id: int | None
-    deposit: MoneyRead | None
-
-    realtor_service_id: int | None
-    realtor_service: MoneyRead | None
-
-    is_has_been_realtor_services: bool
-
     created_at: datetime.datetime | None
+
+
+@dataclass
+class HouseOfferDTO(BaseHouseOfferDTO):
+    is_has_been_realtor_services: bool
+    price: MoneyDTO
+    tax: MoneyDTO | None = None
+    deposit: MoneyDTO | None = None
+    realtor_service: MoneyDTO | None = None
+
+
+@dataclass
+class HouseOfferSumDTO(BaseHouseOfferDTO):
+    price: MoneyDTO | None
+
+@dataclass
+class HouseOfferSumWithRealtorDTO(HouseOfferSumDTO):
+    is_has_been_realtor_services: bool
