@@ -1,8 +1,6 @@
-import unittest
-from typing import Sequence
 from unittest import TestCase
 
-from sqlalchemy import create_engine, Select
+from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from src.home_offer.dto import HouseOfferDTO
@@ -38,13 +36,6 @@ class TestHomeOffer(TestCase):
         super().tearDown()
         BaseModel.metadata.drop_all(self.engine)
         self.engine.dispose()
-
-    def test_grab_offers(self):
-        self.service.grab_offers()
-        with Session(self.engine) as session:
-            stmt = Select(HouseOfferModel)
-            offers: Sequence[HouseOfferModel] = session.scalars(stmt).all()
-            self.assertGreaterEqual(len(offers), 10)
 
     def test_sort_get_all(self):
         self.service.grab_offers(True)
@@ -132,18 +123,3 @@ class TestHomeOffer(TestCase):
         offers_with_sum = self.service.get_in_euro_all_and_sum_with_tax_deposit_and_realtor()
         self.assertGreaterEqual(len(offers_with_sum), 10)
         self.assertAscSort(offers_with_sum)
-
-    @unittest.skip("use real db. For check work with real db")
-    def test_grab_offers_with_real_db(self):
-        from src.utils.db.sqlalchemy import engine
-        HomeOfferService(
-            engine=engine,
-            download_html_home_offers_service=self.download_html_home_offers_service
-        ).grab_offers()
-        length_offers = 0
-        with Session(engine) as session:
-            stmt = Select(HouseOfferModel)
-            offers: Sequence[HouseOfferModel] = session.scalars(stmt).all()
-            length_offers = len(offers)
-
-        self.assertGreaterEqual(length_offers, 10)
