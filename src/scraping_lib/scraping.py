@@ -95,16 +95,16 @@ def parse_offers(html: str) -> list[Offer]:
     list_elements = unordered_list[-1].find_all("li")
     if not list_elements:
         raise IOError
-    prices_tags = [element.find("div", attrs={"data-cy": "listing-item-price"}) for
-                   element in list_elements]
-    prices_tags = filter(None, prices_tags)
-    prices = [price_ordering(price) for price in prices_tags]
     urls_with_none = [a.get("href") if (a := element.find("a", attrs={"data-cy": "listing-item-link"})) else None
                       for element in list_elements]
     if any(isinstance(url, type(AttributeValueList)) for url in urls_with_none):
         raise IOError
     urls_without_none = filter(lambda x: x is not None, urls_with_none)
     urls: List[str] = [str(url) for url in urls_without_none]
+    prices_tags = [element.find("div", attrs={"data-cy": "listing-item-price"}) for
+                   element in list_elements]
+    prices_tags_without_nome = list(filter(None, prices_tags))
+    prices = [price_ordering(price) for price in prices_tags_without_nome]
     return [Offer(price, url) for price, url in zip(prices, urls)]
 
 
@@ -142,10 +142,12 @@ def price_ordering(price_tags: Tag):
     if not price:
         raise IOError
     price = int("".join([c for c in price.text if c.isdigit() and c != "²"]))
-    tax = prices[1]
-    tax_text = tax.text
+    tax_text = None
+    if len(prices) != 1:
+        tax = prices[1]
+        tax_text = tax.text
     tax = None
-    if "czynsz" in tax_text:
+    if tax_text is not None and "czynsz" in tax_text:
         tax = int("".join([c for c in tax_text if c.isdigit() and c != "²"]))
     return PriceOfferComplete(price, tax)
 
