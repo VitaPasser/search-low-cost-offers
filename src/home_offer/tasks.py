@@ -3,9 +3,10 @@ import os
 from celery import Celery, shared_task
 from celery.schedules import crontab
 
+from src.home_offer.services import HomeOfferService
 from src.scraping_lib.constants import OTODOM_DOMAIN_URL, OTODOM_URL_LIST, OTODOM_NAME
 from src.scraping_lib.download_html_home_offers import DownloadHtmlHomeOffersService, pagination_max_number_scraper
-from src.home_offer.services import HomeOfferService
+from src.scraping_lib.scraping.otodom import OtodomScrapper
 from src.utils.db.sqlalchemy import engine
 
 
@@ -35,6 +36,7 @@ def grab_house_offers():
     )
     service = HomeOfferService(
         engine,
-        download_html_home_offers_service=download_html_home_offers_service
+        download_html_home_offers_service=download_html_home_offers_service,
+        scraper=OtodomScrapper()
     )
     service.grab_offers()

@@ -2,7 +2,6 @@ from multipledispatch import dispatch
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session, aliased
 
-from src.scraping_lib.download_html_home_offers import DownloadHtmlHomeOffersService
 from src.home_offer.dto import HouseOfferDTO, HouseOfferSumWithRealtorDTO
 from src.home_offer.dto import HouseOfferSumDTO
 from src.home_offer.model import HouseOfferModel
@@ -10,8 +9,9 @@ from src.home_offer.money.dto import MoneyDTO
 from src.home_offer.money.model import MoneyModel
 from src.home_offer.money.services import money_model_to_money_dto
 from src.home_offer.money.services import price_offer_complete_to_monies, money_to_euro
+from src.scraping_lib.download_html_home_offers import DownloadHtmlHomeOffersService
 from src.scraping_lib.models import Offer, OfferComplete
-from src.scraping_lib.scraping import parse_offers, parse_offers_deep
+from src.scraping_lib.scraping.abstract_scrapper import Scrapper
 
 
 def _house_offer_to_model(offer: OfferComplete) -> HouseOfferModel:
@@ -64,21 +64,27 @@ def _offer_prices_to_euro(offer: HouseOfferDTO) -> HouseOfferDTO:
 
 
 class HomeOfferService:
-    def __init__(self, engine: Engine, download_html_home_offers_service: DownloadHtmlHomeOffersService):
+    def __init__(
+            self,
+            engine: Engine,
+            download_html_home_offers_service: DownloadHtmlHomeOffersService,
+            scraper: Scrapper
+    ):
         self.engine = engine
         self.download_pages_service = download_html_home_offers_service
+        self.scraper = scraper
 
     def grab_offers(self, cache=False):
         htmls_list_offers = self.download_pages_service.download_or_load_list_html(cache=cache)
 
         offers: list[Offer] = []
         for html_list_offers in htmls_list_offers:
-            offers.extend(parse_offers(html_list_offers))
+            offers.extend(self.scraper.parse_offers(html_list_offers))
 
         print(len(offers))
 
         html_offers = self.download_pages_service.download_html_offers(offers)
-        complete_offers = parse_offers_deep(html_offers, offers)
+        complete_offers = self.scraper.parse_offers_deep(html_offers, offers)
 
         with Session(self.engine) as session:
             offers_models: list[HouseOfferModel] = [_house_offer_to_model(offer) for offer in complete_offers]

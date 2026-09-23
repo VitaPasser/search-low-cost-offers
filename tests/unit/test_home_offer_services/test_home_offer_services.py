@@ -10,6 +10,7 @@ from src.home_offer.money.cuerrency.model import Currency
 from src.home_offer.services import HomeOfferService
 from src.scraping_lib.constants import OTODOM_NAME, OTODOM_URL_LIST, OTODOM_DOMAIN_URL
 from src.scraping_lib.download_html_home_offers import pagination_max_number_scraper, DownloadHtmlHomeOffersService
+from src.scraping_lib.scraping.otodom import OtodomScrapper
 from src.utils.models import BaseModel
 
 
@@ -29,7 +30,8 @@ class TestHomeOffer(TestCase):
         )
         self.service = HomeOfferService(
             engine,
-            download_html_home_offers_service=self.download_html_home_offers_service
+            download_html_home_offers_service=self.download_html_home_offers_service,
+            scraper=OtodomScrapper()
         )
 
     def tearDown(self) -> None:
