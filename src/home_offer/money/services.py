@@ -41,7 +41,7 @@ def price_offer_complete_to_monies(price_offer: PriceOfferComplete):
 EURO_TO_ZLOTY_EXCHANGE_RATE = 4.3
 
 
-def money_to_euro(money_in_zloty: MoneyModel) -> MoneyDTO:
+def money_to_euro(money_in_zloty: MoneyDTO) -> MoneyDTO:
     currency = Currency.EUR
     amount = money_in_zloty.amount / EURO_TO_ZLOTY_EXCHANGE_RATE
     return MoneyDTO(amount=amount, currency=currency)

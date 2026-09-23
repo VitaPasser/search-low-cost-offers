@@ -1,16 +1,20 @@
-from sqlalchemy import Engine
-from sqlalchemy.orm import Session
+from multipledispatch import dispatch
+from sqlalchemy import Engine, select
+from sqlalchemy.orm import Session, aliased
 
-from src.home_offer.dto import HouseOfferDTO
-from src.home_offer.money.services import money_model_to_money_dto
+from src.home_offer.dto import HouseOfferDTO, HouseOfferSumWithRealtorDTO
+from src.home_offer.dto import HouseOfferSumDTO
 from src.home_offer.model import HouseOfferModel
+from src.home_offer.money.dto import MoneyDTO
+from src.home_offer.money.model import MoneyModel
+from src.home_offer.money.services import money_model_to_money_dto
 from src.home_offer.money.services import price_offer_complete_to_monies, money_to_euro
 from src.scraping_lib.download_html_home_offers import download_or_load_list_html, download_html_offers
 from src.scraping_lib.models import Offer, OfferComplete
 from src.scraping_lib.scraping import parse_offers, parse_offers_deep
 
 
-def house_offer_to_model(offer: OfferComplete) -> HouseOfferModel:
+def _house_offer_to_model(offer: OfferComplete) -> HouseOfferModel:
     price, tax, deposit, realtor_service = price_offer_complete_to_monies(offer.price)
     return HouseOfferModel(
         url=offer.url,
@@ -23,11 +27,12 @@ def house_offer_to_model(offer: OfferComplete) -> HouseOfferModel:
     )
 
 
-def offer_model_to_model_dto(offer: HouseOfferModel) -> HouseOfferDTO:
+def _offer_model_to_model_dto(offer: HouseOfferModel) -> HouseOfferDTO:
     return HouseOfferDTO(
+        id=offer.id,
         id_url=offer.id_url,
         url=offer.url,
-        price=money_to_euro(offer.price),
+        price=money_model_to_money_dto(offer.price),
         tax=money_model_to_money_dto(offer.tax) if offer.tax else None,
         deposit=money_model_to_money_dto(offer.deposit) if offer.deposit else None,
         realtor_service=money_model_to_money_dto(offer.realtor_service) if offer.realtor_service else None,
@@ -36,8 +41,19 @@ def offer_model_to_model_dto(offer: HouseOfferModel) -> HouseOfferDTO:
     )
 
 
-def offer_prices_to_euro(offer: HouseOfferModel) -> HouseOfferDTO:
-    dto = offer_model_to_model_dto(offer)
+@dispatch(HouseOfferSumDTO)
+def _offer_prices_to_euro[T: HouseOfferSumDTO](offer: T) -> T:
+    dto: T = type(offer)(**offer.__dict__)
+    if offer.price:
+        dto.price = money_to_euro(offer.price)
+    return dto
+
+
+@dispatch(HouseOfferDTO)
+def _offer_prices_to_euro(offer: HouseOfferDTO) -> HouseOfferDTO:
+    dto = HouseOfferDTO(**offer.__dict__)
+    if offer.price:
+        dto.price = money_to_euro(offer.price)
     if offer.tax:
         dto.tax = money_to_euro(offer.tax)
     if offer.deposit:
@@ -61,7 +77,7 @@ class HomeOfferService:
         complete_offers = parse_offers_deep(html_offers, offers)
 
         with Session(self.engine) as session:
-            offers_models: list[HouseOfferModel] = [house_offer_to_model(offer) for offer in complete_offers]
+            offers_models: list[HouseOfferModel] = [_house_offer_to_model(offer) for offer in complete_offers]
             for offer in offers_models:
                 instance = session.query(HouseOfferModel).filter_by(id_url=offer.id_url).first()
                 if instance:
@@ -69,14 +85,124 @@ class HomeOfferService:
                 session.add(offer)
             session.commit()
 
-
     def get_all(self) -> list[HouseOfferDTO]:
         with Session(self.engine) as session:
-            offers = session.query(HouseOfferModel).all()
-            return [offer_model_to_model_dto(offer) for offer in offers]
-
+            stmt = session.query(HouseOfferModel).join(HouseOfferModel.price).order_by(MoneyModel.amount)
+            offers = stmt.all()
+            return [_offer_model_to_model_dto(offer) for offer in offers]
 
     def get_in_euro_all(self) -> list[HouseOfferDTO]:
+        offers_in_zlotys = self.get_all()
+        return [_offer_prices_to_euro(offer) for offer in offers_in_zlotys]
+
+    def get_in_euro_all_and_sum_with_tax(self) -> list[HouseOfferSumDTO]:
         with Session(self.engine) as session:
-            offers_in_zlotys = session.query(HouseOfferModel).all()
-            return [offer_prices_to_euro(offer) for offer in offers_in_zlotys]
+            price_money = aliased(MoneyModel, name="price_money")
+            tax_money = aliased(MoneyModel, name="tax_money")
+
+            total_amount_expr = price_money.amount + tax_money.amount
+
+            stmt = (
+                select(
+                    HouseOfferModel.id,
+                    HouseOfferModel.id_url,
+                    HouseOfferModel.url,
+                    total_amount_expr.label("money_price_amount"),
+                    price_money.currency.label("money_price_current"),
+                    HouseOfferModel.created_at,
+                )
+                .outerjoin(price_money, HouseOfferModel.price_id == price_money.id)
+                .outerjoin(tax_money, HouseOfferModel.tax_id == tax_money.id)
+            ).order_by(total_amount_expr.asc().nulls_last())
+
+            offers_rows = session.execute(stmt).mappings().all()
+            offers: list[HouseOfferSumDTO] = []
+            for offer_row in offers_rows:
+                offer_dict = {
+                    **offer_row,
+                    "price": MoneyDTO(
+                        amount=offer_row["money_price_amount"],
+                        currency=offer_row["money_price_current"]
+                    ) if offer_row["money_price_amount"] is not None else None,
+                }
+                del offer_dict["money_price_amount"]
+                del offer_dict["money_price_current"]
+                offers.append(HouseOfferSumDTO(**offer_dict))
+            return [_offer_prices_to_euro(offer) for offer in offers]
+
+    def get_in_euro_all_and_sum_with_tax_and_deposit(self) -> list[HouseOfferSumDTO]:
+        with Session(self.engine) as session:
+            price_money = aliased(MoneyModel, name="price_money")
+            tax_money = aliased(MoneyModel, name="tax_money")
+            deposit_money = aliased(MoneyModel, name="deposit_money")
+
+            total_amount_expr = price_money.amount + tax_money.amount + deposit_money.amount
+
+            stmt = (
+                select(
+                    HouseOfferModel.id,
+                    HouseOfferModel.id_url,
+                    HouseOfferModel.url,
+                    total_amount_expr.label("money_price_amount"),
+                    price_money.currency.label("money_price_current"),
+                    HouseOfferModel.created_at,
+                )
+                .outerjoin(price_money, HouseOfferModel.price_id == price_money.id)
+                .outerjoin(tax_money, HouseOfferModel.tax_id == tax_money.id)
+                .outerjoin(deposit_money, HouseOfferModel.deposit_id == deposit_money.id)
+            ).order_by(total_amount_expr.asc().nulls_last())
+
+            offers_rows = session.execute(stmt).mappings().all()
+            offers: list[HouseOfferSumDTO] = []
+            for offer_row in offers_rows:
+                offer_dict = {
+                    **offer_row,
+                    "price": MoneyDTO(
+                        amount=offer_row["money_price_amount"],
+                        currency=offer_row["money_price_current"]
+                    ) if offer_row["money_price_amount"] is not None else None,
+                }
+                del offer_dict["money_price_amount"]
+                del offer_dict["money_price_current"]
+                offers.append(HouseOfferSumDTO(**offer_dict))
+            return [_offer_prices_to_euro(offer) for offer in offers]
+
+    def get_in_euro_all_and_sum_with_tax_deposit_and_realtor(self) -> list[HouseOfferSumWithRealtorDTO]:
+        with Session(self.engine) as session:
+            price_money = aliased(MoneyModel, name="price_money")
+            tax_money = aliased(MoneyModel, name="tax_money")
+            deposit_money = aliased(MoneyModel, name="deposit_money")
+            realtor_money = aliased(MoneyModel, name="realtor_money")
+
+            total_amount_expr = price_money.amount + tax_money.amount + deposit_money.amount + realtor_money.amount
+
+            stmt = (
+                select(
+                    HouseOfferModel.id,
+                    HouseOfferModel.id_url,
+                    HouseOfferModel.url,
+                    total_amount_expr.label("money_price_amount"),
+                    price_money.currency.label("money_price_current"),
+                    HouseOfferModel.created_at,
+                    HouseOfferModel.is_has_been_realtor_services,
+                )
+                .outerjoin(price_money, HouseOfferModel.price_id == price_money.id)
+                .outerjoin(tax_money, HouseOfferModel.tax_id == tax_money.id)
+                .outerjoin(deposit_money, HouseOfferModel.deposit_id == deposit_money.id)
+                .outerjoin(realtor_money, HouseOfferModel.realtor_service_id == realtor_money.id)
+            ).order_by(total_amount_expr.asc().nulls_last())
+
+            offers_rows = session.execute(stmt).mappings().all()
+            offers: list[HouseOfferSumWithRealtorDTO] = []
+            for offer_row in offers_rows:
+                offer_dict = {
+                    **offer_row,
+                    "price": MoneyDTO(
+                        amount=offer_row["money_price_amount"],
+                        currency=offer_row["money_price_current"]
+                    ) if offer_row["money_price_amount"] is not None else None,
+                }
+                del offer_dict["money_price_amount"]
+                del offer_dict["money_price_current"]
+                offers.append(HouseOfferSumWithRealtorDTO(**offer_dict))
+            return [_offer_prices_to_euro(offer) for offer in offers]
