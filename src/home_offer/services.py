@@ -9,7 +9,7 @@ from src.home_offer.money.dto import MoneyDTO
 from src.home_offer.money.model import MoneyModel
 from src.home_offer.money.services import money_model_to_money_dto
 from src.home_offer.money.services import price_offer_complete_to_monies, money_to_euro
-from src.scraping_lib.download_html_home_offers import DownloadHtmlHomeOffersService
+from src.scraping_lib.download_html_home_offers.service import DownloadHtmlHomeOffersService
 from src.scraping_lib.models import Offer, OfferComplete
 from src.scraping_lib.scraping.abstract_scrapper import Scrapper
 

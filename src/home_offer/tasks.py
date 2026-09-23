@@ -4,8 +4,7 @@ from celery import Celery, shared_task
 from celery.schedules import crontab
 
 from src.home_offer.services import HomeOfferService
-from src.scraping_lib.constants import OTODOM_DOMAIN_URL, OTODOM_URL_LIST, OTODOM_NAME
-from src.scraping_lib.download_html_home_offers import DownloadHtmlHomeOffersService, pagination_max_number_scraper
+from src.scraping_lib.download_html_home_offers.otodom import otodom_download_html_home_offers
 from src.scraping_lib.scraping.otodom import OtodomScrapper
 from src.utils.db.sqlalchemy import engine
 
@@ -28,12 +27,7 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
 
 @shared_task(name='src.home_offer.tasks.grab_house_offers')
 def grab_house_offers():
-    download_html_home_offers_service = DownloadHtmlHomeOffersService(
-        domain_url=OTODOM_DOMAIN_URL,
-        url_list=OTODOM_URL_LIST,
-        name=OTODOM_NAME,
-        pagination_number_max_scraper=pagination_max_number_scraper
-    )
+    download_html_home_offers_service = otodom_download_html_home_offers
     service = HomeOfferService(
         engine,
         download_html_home_offers_service=download_html_home_offers_service,

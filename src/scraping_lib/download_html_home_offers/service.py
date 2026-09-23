@@ -5,11 +5,10 @@ from functools import cached_property
 from pathlib import Path
 from typing import List, Callable
 
-from bs4 import BeautifulSoup
+from playwright.async_api import async_playwright
 from playwright.sync_api import sync_playwright, Browser, Page, Playwright
 from playwright_stealth import Stealth
 
-from src.scraping_lib.constants import PATH_SESSIONS_DIRECTORY
 from src.scraping_lib.constants import PROJECT_ROOT
 from src.scraping_lib.models import Offer
 
@@ -33,18 +32,6 @@ def get_response(url: str, p: Playwright, session) -> tuple[Browser, Page]:
     return browser, page
 
 
-def pagination_max_number_scraper(html: str) -> int:
-    bs = BeautifulSoup(html, "lxml")
-    pagination_list = bs.find("ul", attrs={"data-nx-name": "Pagination"})
-    if not pagination_list:
-        raise IOError
-    pagination_elements = pagination_list.find_all("li")
-    if not pagination_elements:
-        raise IOError
-    pagination_number_max = int(pagination_elements[-2].text)
-    return pagination_number_max
-
-
 class DownloadHtmlHomeOffersService:
     def __init__(self, domain_url: str, url_list: str, name: str, pagination_number_max_scraper: Callable[[str], int]):
         self.domain_url = domain_url
@@ -61,8 +48,12 @@ class DownloadHtmlHomeOffersService:
         return f"{PROJECT_ROOT}/resource/{self.name}"
 
     @cached_property
+    def browser_session_directory_path(self):
+        return f"{PROJECT_ROOT}/resource/sessions/"
+
+    @cached_property
     def browser_session_path(self):
-        return f"{PATH_SESSIONS_DIRECTORY}/{self.name}_session.json"
+        return f"{self.browser_session_directory_path}{self.name}_session.json"
 
     @cached_property
     def offers_list_path(self):
@@ -159,3 +150,30 @@ class DownloadHtmlHomeOffersService:
             htmls.append(html)
 
         return htmls
+
+    async def save_session(self):
+        async with Stealth().use_async(async_playwright()) as p:
+            browser = await p.chromium.launch(headless=False)
+            context = await browser.new_context()
+            page = await context.new_page()
+
+            print("[*] Go to the page in GUI mode...")
+            await page.goto(self.url_list)
+            await page.wait_for_timeout(5000)
+
+            cookies = await context.cookies()
+            user_agent = await page.evaluate("navigator.userAgent")
+
+            session_data = {
+                "user_agent": user_agent,
+                "cookies": cookies
+            }
+
+            if not os.path.exists(self.browser_session_directory_path):
+                os.mkdir(self.browser_session_directory_path)
+            with open(self.browser_session_path, "w", encoding="utf-8") as f:
+                json.dump(session_data, f, indent=4, ensure_ascii=False)
+                print("[*] Complete Successfully")
+
+
+            await browser.close()

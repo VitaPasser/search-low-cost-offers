@@ -7,8 +7,7 @@ from sqlalchemy.orm import Session
 
 from src.home_offer.model import HouseOfferModel
 from src.home_offer.services import HomeOfferService
-from src.scraping_lib.constants import OTODOM_NAME, OTODOM_URL_LIST, OTODOM_DOMAIN_URL
-from src.scraping_lib.download_html_home_offers import pagination_max_number_scraper, DownloadHtmlHomeOffersService
+from src.scraping_lib.download_html_home_offers.otodom import otodom_download_html_home_offers
 from src.scraping_lib.scraping.otodom import OtodomScrapper
 from src.utils.models import BaseModel
 
@@ -21,12 +20,7 @@ class TestHomeOffer(TestCase):
         engine = create_engine("sqlite:///:memory:")
         BaseModel.metadata.create_all(engine)
         self.engine = engine
-        self.download_html_home_offers_service = DownloadHtmlHomeOffersService(
-            domain_url=OTODOM_DOMAIN_URL,
-            url_list=OTODOM_URL_LIST,
-            name=OTODOM_NAME,
-            pagination_number_max_scraper=pagination_max_number_scraper
-        )
+        self.download_html_home_offers_service = otodom_download_html_home_offers
         self.service = HomeOfferService(
             engine,
             download_html_home_offers_service=self.download_html_home_offers_service,
