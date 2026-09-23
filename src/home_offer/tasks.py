@@ -13,7 +13,9 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
         grab_house_offers.s(),
         name="daily grab house offers at 18:30"
     )
-    if bool(os.environ.get("IS_TESTING", False)):
+    is_testing_str = os.environ.get("IS_TESTING", False)
+    is_testing = is_testing_str in ["True", "true", "1"]
+    if is_testing:
         sender.add_periodic_task(
             60.0,
             grab_house_offers.s(),
