@@ -1,9 +1,10 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import String, ForeignKey, Boolean, DateTime
+from sqlalchemy import String, ForeignKey, Boolean, DateTime, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from src.home_offer.bucharest_sector.service import comment_for_property_model
 from src.home_offer.money.model import MoneyModel
 from src.utils.models import BaseModel
 
@@ -13,6 +14,9 @@ class HouseOfferModel(BaseModel):
 
     id_url: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     url: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+
+    sector: Mapped[int | None] = mapped_column(Integer, comment=f"Enum. {comment_for_property_model()} NULL - without info", nullable=True)
+    is_owner: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
 
     price_id: Mapped[int] = mapped_column(ForeignKey("money.id"), nullable=False)
     price: Mapped[MoneyModel] = relationship(

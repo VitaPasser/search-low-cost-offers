@@ -10,6 +10,9 @@ class BaseHouseOfferDTO:
     id_url: str
     url: str
 
+    sector: int | None
+    is_owner: bool | None
+
     created_at: datetime.datetime | None
 
 

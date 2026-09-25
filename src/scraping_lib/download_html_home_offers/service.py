@@ -123,9 +123,9 @@ class DownloadHtmlHomeOffersService:
 
             html = ""
             offer_file_name = hashlib.sha512(offer.url.encode('utf-8')).hexdigest()
-            if Path(f"{self.offers_path}/{offer_file_name}.html").exists():
+            if Path(f"{self.offers_path}{offer_file_name}.html").exists():
 
-                with open(f"{self.offers_path}/{offer_file_name}.html", "rt") as file:
+                with open(f"{self.offers_path}{offer_file_name}.html", "rt") as file:
                     html = file.read()
                     htmls.append(html)
                     continue
@@ -138,7 +138,7 @@ class DownloadHtmlHomeOffersService:
                     print("Page Title:", page.title())
 
                     html = page.content()
-                    with open(f"{self.offers_path}/{offer_file_name}.html", "wt") as file:
+                    with open(f"{self.offers_path}{offer_file_name}.html", "wt") as file:
                         file.write(html)
 
                 except IOError:

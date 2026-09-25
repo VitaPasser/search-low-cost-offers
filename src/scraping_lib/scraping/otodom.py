@@ -23,7 +23,7 @@ def _price_ordering(price_tags: Tag):
 
 class OtodomScrapper(Scrapper):
 
-    def parse_offers(self, html: str) -> list[Offer]:
+    def parse_list_offers_page(self, html: str) -> list[Offer]:
         bs: BeautifulSoup = BeautifulSoup(html, "lxml")
         unordered_list = bs.find("div", attrs={"data-cy": "search.listing.organic"})
         if not unordered_list:
@@ -42,11 +42,11 @@ class OtodomScrapper(Scrapper):
         urls: list[str] = [str(url) for url in urls_without_none]
         prices_tags = [element.find("div", attrs={"data-cy": "listing-item-price"}) for
                        element in list_elements]
-        prices_tags_without_nome = list(filter(None, prices_tags))
-        prices = [_price_ordering(price) for price in prices_tags_without_nome]
+        prices_tags_without_none = list(filter(None, prices_tags))
+        prices = [_price_ordering(price) for price in prices_tags_without_none]
         return [Offer(price, url) for price, url in zip(prices, urls)]
 
-    def parse_offers_deep(self, htmls: list[str], offers: list[Offer]) -> list[OfferComplete]:
+    def parse_offer_page(self, htmls: list[str], offers: list[Offer]) -> list[OfferComplete]:
         results: list[OfferComplete] = []
         for html, offer in zip(htmls, offers):
             bs: BeautifulSoup = BeautifulSoup(html, "lxml")
