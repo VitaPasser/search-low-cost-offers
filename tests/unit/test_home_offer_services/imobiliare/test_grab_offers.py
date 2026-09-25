@@ -62,4 +62,4 @@ class TestHomeOffer(TestCase):
             length_offers = len(offers)
 
             self.assertGreaterEqual(length_offers, 10)
-        self.engine.dispose()
+        engine.dispose()
