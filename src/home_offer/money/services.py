@@ -42,6 +42,8 @@ EURO_TO_ZLOTY_EXCHANGE_RATE = 4.3
 
 
 def money_to_euro(money_in_zloty: MoneyDTO) -> MoneyDTO:
+    if money_in_zloty.currency == Currency.EUR:
+        return money_in_zloty
     currency = Currency.EUR
     amount = money_in_zloty.amount / EURO_TO_ZLOTY_EXCHANGE_RATE
     return MoneyDTO(amount=amount, currency=currency)

@@ -63,9 +63,15 @@ class TestHomeOffer(TestCase):
                 offer_reference = session.query(HouseOfferModel).where(HouseOfferModel.id == offer.id).first()
                 self.assertIsNotNone(offer_reference)
                 if offer_reference is None: return  # for suppress the warning
-                self.assertEqual(result.amount if (result := offer.price) else result,
-                                 (offer_reference.price.amount + offer_reference.tax.amount) / self.EURO_TO_ZLOTYS
-                                 if offer_reference.tax else None)
+                expect = None
+                if offer_reference.tax:
+                    expect = offer_reference.price.amount + offer_reference.tax.amount
+                    if offer_reference.price.currency != Currency.EUR:
+                        expect /= self.EURO_TO_ZLOTYS
+
+                actual = result.amount if (result := offer.price) else result
+
+                self.assertEqual(actual, expect)
 
     def test_sort_get_all_in_euro_and_sum_with_tax(self):
         asyncio.run(self.service.grab_offers(True))
@@ -82,10 +88,15 @@ class TestHomeOffer(TestCase):
                 offer_reference = session.query(HouseOfferModel).where(HouseOfferModel.id == offer.id).first()
                 self.assertIsNotNone(offer_reference)
                 if offer_reference is None: return  # for suppress the warning
-                self.assertEqual(result.amount if (result := offer.price) else result,
-                                 (
-                                         offer_reference.price.amount + offer_reference.tax.amount + offer_reference.deposit.amount) / self.EURO_TO_ZLOTYS
-                                 if offer_reference.tax and offer_reference.deposit else None)
+                expect = None
+                if offer_reference.tax and offer_reference.deposit:
+                    expect = offer_reference.price.amount + offer_reference.tax.amount + offer_reference.deposit.amount
+                    if offer_reference.price.currency != Currency.EUR:
+                        expect /= self.EURO_TO_ZLOTYS
+
+                actual = result.amount if (result := offer.price) else result
+
+                self.assertEqual(actual, expect)
 
     def test_sort_get_all_in_euro_and_sum_with_deposit(self):
         asyncio.run(self.service.grab_offers(True))
@@ -102,9 +113,15 @@ class TestHomeOffer(TestCase):
                 offer_reference = session.query(HouseOfferModel).where(HouseOfferModel.id == offer.id).first()
                 self.assertIsNotNone(offer_reference)
                 if offer_reference is None: return  # for suppress the warning
-                self.assertEqual(result.amount if (result := offer.price) else result,
-                                 (offer_reference.price.amount + offer_reference.deposit.amount) / self.EURO_TO_ZLOTYS
-                                 if offer_reference.deposit else None)
+                expect = None
+                if offer_reference.deposit:
+                    expect = offer_reference.price.amount + offer_reference.deposit.amount
+                    if offer_reference.price.currency != Currency.EUR:
+                        expect /= self.EURO_TO_ZLOTYS
+
+                actual = result.amount if (result := offer.price) else result
+
+                self.assertEqual(actual, expect)
 
     def test_sort_get_all_in_euro_and_sum_with_tax_and_deposit(self):
         asyncio.run(self.service.grab_offers(True))
@@ -129,10 +146,16 @@ class TestHomeOffer(TestCase):
             offer = session.query(HouseOfferModel).where(HouseOfferModel.id_url == offers_with_sum[0].id_url).first()
             self.assertIsNotNone(offer)
             if offer is None: return  # for suppress the warning
-            self.assertEqual(result.amount if (result := offers_with_sum[0].price) else result,
-                             (offer.price.amount + offer.tax.amount
-                              + offer.deposit.amount + offer.realtor_service.amount) / self.EURO_TO_ZLOTYS
-                             if offer.tax and offer.deposit and offer.realtor_service else None)
+            expect = None
+            if offer.tax and offer.deposit and offer.realtor_service:
+                expect = (offer.price.amount + offer.tax.amount + offer.deposit.amount
+                          + offer.realtor_service.amount)
+                if offer.price.currency != Currency.EUR:
+                    expect /= self.EURO_TO_ZLOTYS
+
+            actual = result.amount if (result := offers_with_sum[0].price) else result
+
+            self.assertEqual(actual, expect)
 
     def test_sort_when_get_all_in_euro_and_sum_with_tax_deposit_and_realtor(self):
         asyncio.run(self.service.grab_offers(True))
@@ -148,10 +171,16 @@ class TestHomeOffer(TestCase):
             offer = session.query(HouseOfferModel).where(HouseOfferModel.id_url == offers_with_sum[0].id_url).first()
             self.assertIsNotNone(offer)
             if offer is None: return  # for suppress the warning
-            self.assertEqual(result.amount if (result := offers_with_sum[0].price) else result,
-                             (offer.price.amount + offer.deposit.amount
-                              + offer.realtor_service.amount) / self.EURO_TO_ZLOTYS
-                             if offer.deposit and offer.realtor_service else None)
+            expect = None
+            if offer.deposit and offer.realtor_service:
+                expect = (offer.price.amount + offer.deposit.amount
+                          + offer.realtor_service.amount)
+                if offer.price.currency != Currency.EUR:
+                    expect /= self.EURO_TO_ZLOTYS
+
+            actual = result.amount if (result := offers_with_sum[0].price) else result
+
+            self.assertEqual(actual, expect)
 
     def test_sort_when_get_all_in_euro_and_sum_with_deposit_and_realtor(self):
         asyncio.run(self.service.grab_offers(True))
