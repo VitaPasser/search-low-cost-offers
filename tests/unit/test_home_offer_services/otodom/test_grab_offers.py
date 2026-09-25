@@ -47,6 +47,7 @@ class TestHomeOffer(TestCase):
         path = f"sqlite:///{PROJECT_ROOT}/data/db-test-otodom.sqlite"
         engine = create_engine(path)
         BaseModel.metadata.create_all(self.engine)
+
         HomeOfferService(
             engine=engine,
             download_html_home_offers_service=self.download_html_home_offers_service,
@@ -58,4 +59,4 @@ class TestHomeOffer(TestCase):
             length_offers = len(offers)
 
             self.assertGreaterEqual(length_offers, 10)
-        self.engine.dispose()
+        engine.dispose()
