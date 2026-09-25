@@ -1,3 +1,4 @@
+import asyncio
 import os
 import unittest
 from typing import Sequence
@@ -36,7 +37,7 @@ class TestHomeOffer(TestCase):
         self.engine.dispose()
 
     def test_grab_offers(self):
-        self.service.grab_offers()
+        asyncio.run(self.service.grab_offers())
         with Session(self.engine) as session:
             stmt = Select(HouseOfferModel)
             offers: Sequence[HouseOfferModel] = session.scalars(stmt).all()
@@ -48,11 +49,13 @@ class TestHomeOffer(TestCase):
         engine = create_engine(path)
         BaseModel.metadata.create_all(engine)
 
-        HomeOfferService(
-            engine=engine,
-            download_html_home_offers_service=self.download_html_home_offers_service,
-            scraper=ImobiliareScrapper()
-        ).grab_offers()
+        asyncio.run(
+            HomeOfferService(
+                engine=engine,
+                download_html_home_offers_service=self.download_html_home_offers_service,
+                scraper=ImobiliareScrapper()
+            ).grab_offers()
+        )
         with Session(engine) as session:
             stmt = Select(HouseOfferModel)
             offers: Sequence[HouseOfferModel] = session.scalars(stmt).all()

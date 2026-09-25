@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 from celery import Celery, shared_task
@@ -47,7 +48,7 @@ def grab_house_offers_otodom():
         download_html_home_offers_service=download_html_home_offers_service,
         scraper=OtodomScrapper()
     )
-    service.grab_offers()
+    asyncio.run(service.grab_offers())
 
 
 @shared_task(name='src.home_offer.tasks.grab_house_offers_imobiliare')
@@ -60,4 +61,4 @@ def grab_house_offers_imobiliare():
         download_html_home_offers_service=download_html_home_offers_service,
         scraper=ImobiliareScrapper()
     )
-    service.grab_offers()
+    asyncio.run(service.grab_offers())

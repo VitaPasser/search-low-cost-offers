@@ -39,8 +39,8 @@ class HomeOfferService:
         self.download_pages_service = download_html_home_offers_service
         self.scraper = scraper
 
-    def grab_offers(self, cache=False):
-        htmls_list_offers = self.download_pages_service.download_or_load_list_html(cache=cache)
+    async def grab_offers(self, cache=False):
+        htmls_list_offers = await self.download_pages_service.download_or_load_list_html(cache=cache)
 
         offers: list[Offer] = []
         for html_list_offers in htmls_list_offers:
@@ -48,7 +48,7 @@ class HomeOfferService:
 
         print(len(offers))
 
-        html_offers = self.download_pages_service.download_html_offers(offers)
+        html_offers = await self.download_pages_service.download_html_offers(offers)
         complete_offers = self.scraper.parse_offer_page(html_offers, offers)
 
         with Session(self.engine) as session:

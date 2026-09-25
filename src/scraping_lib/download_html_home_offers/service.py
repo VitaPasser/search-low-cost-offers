@@ -5,24 +5,24 @@ from functools import cached_property
 from pathlib import Path
 from typing import List, Callable
 
-from playwright.async_api import async_playwright
-from playwright.sync_api import sync_playwright, Browser, Page, Playwright
+from anyio import open_file
+from playwright.async_api import async_playwright, Playwright, Browser, Page
 from playwright_stealth import Stealth
 
 from src.scraping_lib.constants import PROJECT_ROOT
 from src.scraping_lib.models import Offer
 
 
-def get_response(url: str, p: Playwright, session) -> tuple[Browser, Page]:
-    browser = p.chromium.launch(headless=True)
-    context = browser.new_context(
+async def get_response(url: str, p: Playwright, session) -> tuple[Browser, Page]:
+    browser = await p.chromium.launch(headless=True)
+    context = await browser.new_context(
         user_agent=session["user_agent"],
     )
-    context.add_cookies(session["cookies"])
-    page = context.new_page()
+    await context.add_cookies(session["cookies"])
+    page = await context.new_page()
 
-    response = page.goto(url)
-    page.wait_for_timeout(3000)
+    response = await page.goto(url)
+    await page.wait_for_timeout(3000)
 
     if response is None:
         raise IOError
@@ -63,28 +63,28 @@ class DownloadHtmlHomeOffersService:
     def offers_path(self):
         return f"{self.resource_path}/offers/"
 
-    def download_offers_list_page(self, pagination_number: int) -> str:
+    async def download_offers_list_page(self, pagination_number: int) -> str:
         url = f"{self.url_list}&page={pagination_number}"
         if pagination_number == 1:
             url = f"{self.url_list}"
-        with open(self.browser_session_path, "r", encoding="utf-8") as f:
-            session = json.load(f)
+        async with await open_file(self.browser_session_path, "r", encoding="utf-8") as f:
+            session = json.loads(await f.read())
 
-        with Stealth().use_sync(sync_playwright()) as p:
+        async with Stealth().use_async(async_playwright()) as p:
             try:
-                browser, page = get_response(url, p, session)
+                browser, page = await get_response(url, p, session)
 
-                print("Page Title:", page.title())
-                html = page.content()
-                with open(f"{self.offers_list_path}/index-{pagination_number}.html", "wt") as file:
-                    file.write(html)
+                print("Page Title:", await page.title())
+                html = await page.content()
+                async with await open_file(f"{self.offers_list_path}/index-{pagination_number}.html", "wt") as file:
+                    await file.write(html)
             except IOError:
                 raise IOError
             finally:
-                browser.close()
+                await browser.close()
             return html
 
-    def download_or_load_list_html(self, cache: bool = True) -> List[str]:
+    async def download_or_load_list_html(self, cache: bool = True) -> List[str]:
         htmls: list[str] = []
 
         if not Path(self.offers_list_path).exists():
@@ -96,24 +96,24 @@ class DownloadHtmlHomeOffersService:
             max_pagination_len = len(os.listdir(f"{self.offers_list_path}"))
             for pagination_number in range(1, max_pagination_len + 1):
 
-                with open(f"{self.offers_list_path}index-{pagination_number}.html", "rt") as file:
-                    htmls.append(file.read())
+                async with await open_file(f"{self.offers_list_path}index-{pagination_number}.html", "rt") as file:
+                    htmls.append(await file.read())
 
             return htmls
 
         pagination_number_start: int = 1
-        htmls.append(self.download_offers_list_page(pagination_number_start))
+        htmls.append(await self.download_offers_list_page(pagination_number_start))
 
         pagination_number_max = self.pagination_number_max_scraper(htmls[0])
         for pagination_number in range(pagination_number_start + 1, pagination_number_max + 1):
 
-            htmls.append(self.download_offers_list_page(pagination_number))
+            htmls.append(await self.download_offers_list_page(pagination_number))
 
         return htmls
 
-    def download_html_offers(self, offers: List[Offer]) -> List[str]:
-        with open(self.browser_session_path, "r", encoding="utf-8") as f:
-            session = json.load(f)
+    async def download_html_offers(self, offers: List[Offer]) -> List[str]:
+        async with await open_file(self.browser_session_path, "r", encoding="utf-8") as f:
+            session = json.loads(await f.read())
 
         if not Path(self.offers_path).exists():
             os.mkdir(self.offers_path)
@@ -125,27 +125,27 @@ class DownloadHtmlHomeOffersService:
             offer_file_name = hashlib.sha512(offer.url.encode('utf-8')).hexdigest()
             if Path(f"{self.offers_path}{offer_file_name}.html").exists():
 
-                with open(f"{self.offers_path}{offer_file_name}.html", "rt") as file:
-                    html = file.read()
+                async with await open_file(f"{self.offers_path}{offer_file_name}.html", "rt") as file:
+                    html = await file.read()
                     htmls.append(html)
                     continue
 
-            with Stealth().use_sync(sync_playwright()) as p:
+            async with Stealth().use_async(async_playwright()) as p:
                 try:
                     url = f"{self.domain_url}{offer.url}"
-                    browser, page = get_response(url, p, session)
+                    browser, page = await get_response(url, p, session)
 
-                    print("Page Title:", page.title())
+                    print("Page Title:", await page.title())
 
-                    html = page.content()
-                    with open(f"{self.offers_path}{offer_file_name}.html", "wt") as file:
-                        file.write(html)
+                    html = await page.content()
+                    async with await open_file(f"{self.offers_path}{offer_file_name}.html", "wt") as file:
+                        await file.write(html)
 
                 except IOError:
                     raise IOError
 
                 finally:
-                    browser.close()
+                    await browser.close()
 
             htmls.append(html)
 
@@ -171,8 +171,8 @@ class DownloadHtmlHomeOffersService:
 
             if not os.path.exists(self.browser_session_directory_path):
                 os.mkdir(self.browser_session_directory_path)
-            with open(self.browser_session_path, "w", encoding="utf-8") as f:
-                json.dump(session_data, f, indent=4, ensure_ascii=False)
+            async with await open_file(self.browser_session_path, "w", encoding="utf-8") as f:
+                json.dump(session_data, await f, indent=4, ensure_ascii=False)
                 print("[*] Complete Successfully")
 
 
