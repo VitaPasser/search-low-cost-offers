@@ -64,7 +64,10 @@ class HomeOfferService:
         with Session(self.engine) as session:
             stmt = session.query(HouseOfferModel).join(HouseOfferModel.price).order_by(MoneyModel.amount)
             offers = stmt.all()
-            return [_offer_model_to_model_dto(offer) for offer in offers]
+            offers_dto = [_offer_model_to_model_dto(offer) for offer in offers]
+            for offer_dto in offers_dto:
+                offer_dto.url = self.download_pages_service.domain_url + offer_dto.url
+            return offers_dto
 
     def get_in_euro_all(self) -> list[HouseOfferDTO]:
         offers_in_zlotys = self.get_all()
@@ -95,6 +98,7 @@ class HomeOfferService:
                 }
                 del offer_dict["money_price_amount"]
                 del offer_dict["money_price_current"]
+                offer_dict["url"] = self.download_pages_service.domain_url + offer_row["url"]
                 offers.append(HouseOfferSumDTO(**offer_dict))
             return [_offer_prices_to_euro(offer) for offer in offers]
 
@@ -125,6 +129,7 @@ class HomeOfferService:
                 }
                 del offer_dict["money_price_amount"]
                 del offer_dict["money_price_current"]
+                offer_dict["url"] = self.download_pages_service.domain_url + offer_row["url"]
                 offers.append(HouseOfferSumDTO(**offer_dict))
             return [_offer_prices_to_euro(offer) for offer in offers]
 
@@ -157,6 +162,7 @@ class HomeOfferService:
                 }
                 del offer_dict["money_price_amount"]
                 del offer_dict["money_price_current"]
+                offer_dict["url"] = self.download_pages_service.domain_url + offer_row["url"]
                 offers.append(HouseOfferSumWithRealtorDTO(**offer_dict))
             return [_offer_prices_to_euro(offer) for offer in offers]
 
@@ -189,6 +195,7 @@ class HomeOfferService:
                 }
                 del offer_dict["money_price_amount"]
                 del offer_dict["money_price_current"]
+                offer_dict["url"] = self.download_pages_service.domain_url + offer_row["url"]
                 offers.append(HouseOfferSumWithRealtorDTO(**offer_dict))
             return [_offer_prices_to_euro(offer) for offer in offers]
 
@@ -221,5 +228,6 @@ class HomeOfferService:
                 }
                 del offer_dict["money_price_amount"]
                 del offer_dict["money_price_current"]
+                offer_dict["url"] = self.download_pages_service.domain_url + offer_row["url"]
                 offers.append(HouseOfferSumWithRealtorDTO(**offer_dict))
             return [_offer_prices_to_euro(offer) for offer in offers]
