@@ -91,7 +91,7 @@ class DownloadHtmlHomeOffersService:
                 await browser.close()
             return html
 
-    async def download_or_load_list_html(self, cache: bool = True) -> List[str]:
+    async def download_or_load_list_html(self, cache: bool = True, max_pages_limit: int | None = None) -> List[str]:
         htmls: list[str] = []
 
         if not Path(self.offers_list_path).exists():
@@ -101,6 +101,8 @@ class DownloadHtmlHomeOffersService:
         if Path(f"{self.offers_list_path}/index-1.html").exists() and cache:
 
             max_pagination_len = len(os.listdir(f"{self.offers_list_path}"))
+            if max_pages_limit:
+                max_pagination_len = max_pages_limit if max_pagination_len >= max_pages_limit else max_pagination_len
             for pagination_number in range(1, max_pagination_len + 1):
 
                 async with await open_file(f"{self.offers_list_path}index-{pagination_number}.html", "rt") as file:
@@ -118,7 +120,7 @@ class DownloadHtmlHomeOffersService:
 
         return htmls
 
-    async def download_html_offers(self, offers: List[Offer]) -> List[str]:
+    async def download_html_offers(self, offers: List[Offer], max_pages_limit: int | None = None) -> List[str]:
         async with await open_file(self.browser_session_path, "r", encoding="utf-8") as f:
             session = json.loads(await f.read())
 
@@ -126,7 +128,10 @@ class DownloadHtmlHomeOffersService:
             os.mkdir(self.offers_path)
 
         htmls: List[str] = []
-        for offer in offers:
+        offers_limited = offers
+        if max_pages_limit:
+            offers_limited = offers[:max_pages_limit]
+        for offer in offers_limited:
 
             html = ""
             offer_file_name = hashlib.sha512(offer.url.encode('utf-8')).hexdigest()
