@@ -49,9 +49,9 @@ class OfferIncludeBucharest(OfferComplete):
     @classmethod
     def from_bucharest_offer(cls,
                    offer: Offer,
-                   realtor_percent_services: float | None,
                    is_owner:bool | None,
-                   sector:str | None) -> Self:
+                   sector:str | None,
+                   realtor_percent_services: float | None = None) -> Self:
         realtor_service_price = offer.price.price * (realtor_percent_services / 100) if realtor_percent_services else None
         price_complete = PriceOfferComplete(
             price=offer.price.price,

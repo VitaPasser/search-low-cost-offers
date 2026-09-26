@@ -98,7 +98,7 @@ class HomeOfferService:
                 }
                 del offer_dict["money_price_amount"]
                 del offer_dict["money_price_current"]
-                offer_dict["url"] = self.download_pages_service.domain_url + offer_row["url"]
+                offer_dict["url"] = self.download_pages_service.domain_url + offer_row["url"] if not offer_row["url"].startswith("http") else offer_row["url"]
                 offers.append(HouseOfferSumDTO(**offer_dict))
             return [_offer_prices_to_euro(offer) for offer in offers]
 
@@ -129,7 +129,7 @@ class HomeOfferService:
                 }
                 del offer_dict["money_price_amount"]
                 del offer_dict["money_price_current"]
-                offer_dict["url"] = self.download_pages_service.domain_url + offer_row["url"]
+                offer_dict["url"] = self.download_pages_service.domain_url + offer_row["url"] if not offer_row["url"].startswith("http") else offer_row["url"]
                 offers.append(HouseOfferSumDTO(**offer_dict))
             return [_offer_prices_to_euro(offer) for offer in offers]
 
@@ -162,7 +162,7 @@ class HomeOfferService:
                 }
                 del offer_dict["money_price_amount"]
                 del offer_dict["money_price_current"]
-                offer_dict["url"] = self.download_pages_service.domain_url + offer_row["url"]
+                offer_dict["url"] = self.download_pages_service.domain_url + offer_row["url"] if not offer_row["url"].startswith("http") else offer_row["url"]
                 offers.append(HouseOfferSumWithRealtorDTO(**offer_dict))
             return [_offer_prices_to_euro(offer) for offer in offers]
 
@@ -195,7 +195,7 @@ class HomeOfferService:
                 }
                 del offer_dict["money_price_amount"]
                 del offer_dict["money_price_current"]
-                offer_dict["url"] = self.download_pages_service.domain_url + offer_row["url"]
+                offer_dict["url"] = self.download_pages_service.domain_url + offer_row["url"] if not offer_row["url"].startswith("http") else offer_row["url"]
                 offers.append(HouseOfferSumWithRealtorDTO(**offer_dict))
             return [_offer_prices_to_euro(offer) for offer in offers]
 
@@ -228,6 +228,6 @@ class HomeOfferService:
                 }
                 del offer_dict["money_price_amount"]
                 del offer_dict["money_price_current"]
-                offer_dict["url"] = self.download_pages_service.domain_url + offer_row["url"]
+                offer_dict["url"] = self.download_pages_service.domain_url + offer_row["url"] if not offer_row["url"].startswith("http") else offer_row["url"]
                 offers.append(HouseOfferSumWithRealtorDTO(**offer_dict))
             return [_offer_prices_to_euro(offer) for offer in offers]

@@ -121,7 +121,7 @@ class ImobiliareScrapper(Scrapper):
                 is_owner = None
                 rieltor_commission_precent = None
                 sector = None
-            results.append(OfferIncludeBucharest.from_bucharest_offer(offer, rieltor_commission_precent,
+            results.append(OfferIncludeBucharest.from_bucharest_offer(offer, realtor_percent_services=rieltor_commission_precent,
                                                                       is_owner=is_owner, sector=sector))
 
         return results

@@ -5,6 +5,7 @@ from functools import cached_property
 from pathlib import Path
 from typing import List, Callable
 
+import anyio
 from anyio import open_file
 from playwright.async_api import async_playwright, Playwright, Browser, Page
 from playwright_stealth import Stealth
@@ -13,7 +14,10 @@ from src.scraping_lib.constants import PROJECT_ROOT
 from src.scraping_lib.models import Offer
 
 
-async def get_response(url: str, p: Playwright, session) -> tuple[Browser, Page]:
+async def get_response(url: str, p: Playwright, session, try_count: int = 0) -> tuple[Browser, Page]:
+    if try_count > 5:
+        raise IOError
+
     browser = await p.chromium.launch(headless=True)
     context = await browser.new_context(
         user_agent=session["user_agent"],
@@ -27,9 +31,12 @@ async def get_response(url: str, p: Playwright, session) -> tuple[Browser, Page]
     if response is None:
         raise IOError
 
-    if (response.status != 410) and response.status != 200:
-        raise IOError
-    return browser, page
+    match response.status:
+        case 200 | 410: return browser, page
+        case 403 | 400:
+            await anyio.sleep(3 * (try_count + 1))
+            return await get_response(url, p, session, try_count + 1)
+        case _: raise IOError
 
 
 class DownloadHtmlHomeOffersService:
@@ -78,8 +85,8 @@ class DownloadHtmlHomeOffersService:
                 html = await page.content()
                 async with await open_file(f"{self.offers_list_path}/index-{pagination_number}.html", "wt") as file:
                     await file.write(html)
-            except IOError:
-                raise IOError
+            # except IOError:
+            #     raise IOError
             finally:
                 await browser.close()
             return html
@@ -133,6 +140,8 @@ class DownloadHtmlHomeOffersService:
             async with Stealth().use_async(async_playwright()) as p:
                 try:
                     url = f"{self.domain_url}{offer.url}"
+                    if offer.url.startswith("http"):
+                        url = offer.url
                     browser, page = await get_response(url, p, session)
 
                     print("Page Title:", await page.title())
@@ -171,8 +180,8 @@ class DownloadHtmlHomeOffersService:
 
             if not os.path.exists(self.browser_session_directory_path):
                 os.mkdir(self.browser_session_directory_path)
-            async with await open_file(self.browser_session_path, "w", encoding="utf-8") as f:
-                json.dump(session_data, await f, indent=4, ensure_ascii=False)
+            async with await open_file(self.browser_session_path, "wt", encoding="utf-8") as f:
+                await f.write(json.dumps(session_data, indent=4, ensure_ascii=False))
                 print("[*] Complete Successfully")
 
 
