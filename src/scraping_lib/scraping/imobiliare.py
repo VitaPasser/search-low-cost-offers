@@ -24,9 +24,9 @@ def _price_ordering(price_tag: Tag):
     return PriceOfferComplete(price=price, currency=currency)
 
 
-def _grab_rieltor_commission_percent(bs: BeautifulSoup) -> Any:
-    section_rieltor_commission_tag = bs.find("section", attrs={"data-cy": "listing-amenities-component"})
-    if not section_rieltor_commission_tag:
+def _grab_realtor_commission_percent(bs: BeautifulSoup) -> Any:
+    section_realtor_commission_tag = bs.find("section", attrs={"data-cy": "listing-amenities-component"})
+    if not section_realtor_commission_tag:
         raise IOError
     utilitati_spans = bs.find_all("span", attrs={"class": "text-title"})
     if not utilitati_spans:
@@ -39,7 +39,7 @@ def _grab_rieltor_commission_percent(bs: BeautifulSoup) -> Any:
             commission_title_span_tag = span
             break
 
-    rieltor_commission_precent = None
+    realtor_commission_precent = None
     if commission_title_span_tag:
         div = commission_title_span_tag.parent
         if not div:
@@ -48,11 +48,13 @@ def _grab_rieltor_commission_percent(bs: BeautifulSoup) -> Any:
         if not div_commission_number:
             raise IOError
         commission_number_text = div_commission_number.text.strip()
-        if commission_number_text is not None and not commission_number_text.isdigit():
-            rieltor_commission_precent = 100
-        else:
-            rieltor_commission_precent = float(commission_number_text)
-    return rieltor_commission_precent
+
+        try:
+            realtor_commission_precent = float("".join([c for c in commission_number_text if c.isdigit()]))
+        except ValueError:
+            realtor_commission_precent = 100
+
+    return realtor_commission_precent
 
 
 def _has_owner(bs: BeautifulSoup) -> bool:
@@ -108,7 +110,7 @@ class ImobiliareScrapper(Scrapper):
             bs: BeautifulSoup = BeautifulSoup(html, "lxml")
             try:
                 is_owner = _has_owner(bs)
-                rieltor_commission_precent = _grab_rieltor_commission_percent(bs)
+                realtor_commission_precent = _grab_realtor_commission_percent(bs)
                 nav_path_address = bs.find("nav", attrs={"data-cy": "breadcrumbs"})
                 if not nav_path_address:
                     raise IOError
@@ -119,9 +121,9 @@ class ImobiliareScrapper(Scrapper):
 
             except IOError:
                 is_owner = None
-                rieltor_commission_precent = None
+                realtor_commission_precent = None
                 sector = None
-            results.append(OfferIncludeBucharest.from_bucharest_offer(offer, realtor_percent_services=rieltor_commission_precent,
+            results.append(OfferIncludeBucharest.from_bucharest_offer(offer, realtor_percent_services=realtor_commission_precent,
                                                                       is_owner=is_owner, sector=sector))
 
         return results
