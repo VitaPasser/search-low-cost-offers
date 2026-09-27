@@ -72,7 +72,7 @@ class HomeOfferService:
             offers = stmt.all()
             offers_dto = [_offer_model_to_model_dto(offer) for offer in offers]
             for offer_dto in offers_dto:
-                offer_dto.url = self.download_pages_service.domain_url + offer_dto.url
+                offer_dto.url = self.download_pages_service.domain_url + offer_dto.url if not offer_dto.url.startswith("http") else offer_dto.url
             return offers_dto
 
     def get_in_euro_all(self) -> list[HouseOfferDTO]:
