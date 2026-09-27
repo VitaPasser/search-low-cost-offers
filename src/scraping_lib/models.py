@@ -52,7 +52,7 @@ class OfferIncludeBucharest(OfferComplete):
                    is_owner:bool | None,
                    sector:str | None,
                    realtor_percent_services: float | None = None) -> Self:
-        realtor_service_price = offer.price.price * (realtor_percent_services / 100) if realtor_percent_services else None
+        realtor_service_price = offer.price.price * (realtor_percent_services / 100) if realtor_percent_services is not None else None
         price_complete = PriceOfferComplete(
             price=offer.price.price,
             deposit=offer.price.price,
