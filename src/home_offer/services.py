@@ -44,7 +44,13 @@ class HomeOfferService:
 
         offers: list[Offer] = []
         for html_list_offers in htmls_list_offers:
-            offers.extend(self.scraper.parse_list_offers_page(html_list_offers))
+            for _ in range(5):
+                try:
+                    offers.extend(self.scraper.parse_list_offers_page(html_list_offers))
+                    break
+                except IOError:
+                    continue
+
 
         print(len(offers))
 
