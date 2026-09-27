@@ -17,7 +17,7 @@ from src.utils.others import str_env_to_bool
 
 
 class TestHomeOffer(TestCase):
-    EURO_TO_ZLOTYS = 4.3
+    EURO_TO_RON_EXCHANGE_RATE = 4.3
 
     def setUp(self) -> None:
         super().setUp()
