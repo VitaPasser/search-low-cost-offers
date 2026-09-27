@@ -15,7 +15,7 @@ from src.scraping_lib.models import Offer
 
 
 async def get_response(url: str, p: Playwright, session, try_count: int = 0) -> tuple[Browser, Page]:
-    if try_count > 5:
+    if try_count > 15:
         raise IOError
 
     browser = await p.chromium.launch(headless=True)
@@ -32,11 +32,14 @@ async def get_response(url: str, p: Playwright, session, try_count: int = 0) -> 
         raise IOError
 
     match response.status:
-        case 200 | 410: return browser, page
+        case 200 | 410 | 404: return browser, page
         case 403 | 400:
             await anyio.sleep(3 * (try_count + 1))
             return await get_response(url, p, session, try_count + 1)
-        case _: raise IOError
+        case _:
+            if browser:
+                await browser.close()
+            raise IOError
 
 
 class DownloadHtmlHomeOffersService:
@@ -85,10 +88,9 @@ class DownloadHtmlHomeOffersService:
                 html = await page.content()
                 async with await open_file(f"{self.offers_list_path}/index-{pagination_number}.html", "wt") as file:
                     await file.write(html)
-            # except IOError:
-            #     raise IOError
             finally:
-                await browser.close()
+                if browser:
+                    await browser.close()
             return html
 
     async def download_or_load_list_html(self, cache: bool = True, max_pages_limit: int | None = None) -> List[str]:
@@ -114,6 +116,10 @@ class DownloadHtmlHomeOffersService:
         htmls.append(await self.download_offers_list_page(pagination_number_start))
 
         pagination_number_max = self.pagination_number_max_scraper(htmls[0])
+        if max_pages_limit:
+            pagination_number_max = max_pages_limit if pagination_number_max >= max_pages_limit else pagination_number_max
+
+
         for pagination_number in range(pagination_number_start + 1, pagination_number_max + 1):
 
             htmls.append(await self.download_offers_list_page(pagination_number))
@@ -126,42 +132,47 @@ class DownloadHtmlHomeOffersService:
 
         if not Path(self.offers_path).exists():
             os.mkdir(self.offers_path)
-
-        htmls: List[str] = []
         offers_limited = offers
         if max_pages_limit:
             offers_limited = offers[:max_pages_limit]
-        for offer in offers_limited:
 
-            html = ""
-            offer_file_name = hashlib.sha512(offer.url.encode('utf-8')).hexdigest()
-            if Path(f"{self.offers_path}{offer_file_name}.html").exists():
+        htmls: List[str] = [""] * len(offers_limited)
 
-                async with await open_file(f"{self.offers_path}{offer_file_name}.html", "rt") as file:
-                    html = await file.read()
-                    htmls.append(html)
-                    continue
+        limiter = anyio.CapacityLimiter(10)
 
-            async with Stealth().use_async(async_playwright()) as p:
-                try:
-                    url = f"{self.domain_url}{offer.url}"
-                    if offer.url.startswith("http"):
-                        url = offer.url
-                    browser, page = await get_response(url, p, session)
+        async def fetch_one(index: int, offer: Offer):
+            async with limiter:
+                offer_file_name = hashlib.sha512(offer.url.encode('utf-8')).hexdigest()
 
-                    print("Page Title:", await page.title())
+                file_path = Path(f"{self.offers_path}{offer_file_name}.html")
+                if file_path.exists():
 
-                    html = await page.content()
-                    async with await open_file(f"{self.offers_path}{offer_file_name}.html", "wt") as file:
-                        await file.write(html)
+                    async with await open_file(file_path, "rt") as file:
+                        htmls[index] = await file.read()
+                        return
 
-                except IOError:
-                    raise IOError
+                async with Stealth().use_async(async_playwright()) as p:
+                    try:
+                        url = f"{self.domain_url}{offer.url}"
+                        if offer.url.startswith("http"):
+                            url = offer.url
 
-                finally:
-                    await browser.close()
+                        browser, page = await get_response(url, p, session)
 
-            htmls.append(html)
+                        print(f"{index}/{len(htmls)}: Page Title:", await page.title())
+
+                        html = await page.content()
+                        async with await open_file(file_path, "wt") as file:
+                            await file.write(html)
+
+                        htmls[index] = html
+                    finally:
+                        await browser.close()
+
+        # Запускаем все задачи параллельно через Таск-группу AnyIO
+        async with anyio.create_task_group() as tg:
+            for i, offer in enumerate(offers_limited):
+                tg.start_soon(fetch_one, i, offer) # noqa
 
         return htmls
 

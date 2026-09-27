@@ -39,11 +39,18 @@ def price_offer_complete_to_monies(price_offer: PriceOfferComplete):
 
 
 EURO_TO_ZLOTY_EXCHANGE_RATE = 4.3
+EURO_TO_RON_EXCHANGE_RATE = 5.27
 
 
-def money_to_euro(money_in_zloty: MoneyDTO) -> MoneyDTO:
-    if money_in_zloty.currency == Currency.EUR:
-        return money_in_zloty
-    currency = Currency.EUR
-    amount = money_in_zloty.amount / EURO_TO_ZLOTY_EXCHANGE_RATE
-    return MoneyDTO(amount=amount, currency=currency)
+def money_to_euro(money_in_other_currency: MoneyDTO) -> MoneyDTO:
+    match money_in_other_currency.currency:
+        case Currency.EUR:
+            return money_in_other_currency
+        case Currency.ZLO:
+            currency = Currency.EUR
+            amount = money_in_other_currency.amount / EURO_TO_ZLOTY_EXCHANGE_RATE
+            return MoneyDTO(amount=amount, currency=currency)
+        case Currency.RON:
+            currency = Currency.RON
+            amount = money_in_other_currency.amount / EURO_TO_RON_EXCHANGE_RATE
+            return MoneyDTO(amount=amount, currency=currency)

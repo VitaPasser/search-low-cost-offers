@@ -12,7 +12,7 @@ def string_to_bucharest_sector(sector: str) -> BucharestSector:
         case "sector 3" | "sectorul 3": return BucharestSector.SECTOR_3
         case "sector 4" | "sectorul 4": return BucharestSector.SECTOR_4
         case "sector 5" | "sectorul 5": return BucharestSector.SECTOR_5
-        case "sector 6" | "sectorul 6": return BucharestSector.SECTOR_6
+        case "sector 6" | "sectorul 6" | "chiajna": return BucharestSector.SECTOR_6
     raise ValueError(f"Invalid sector name: {sector}. Cleaned version: {sector_cleaned}")
 
 

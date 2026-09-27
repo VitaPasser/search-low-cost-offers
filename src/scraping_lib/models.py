@@ -25,7 +25,7 @@ class Offer:
     def __init__(self, price: PriceOfferComplete, url: str):
         self.price = price
         self.url = url
-        self.id = url.split("/")[-1].split("-")[-1]
+        self.id = url.split("/")[-1].split("-")[-1].removesuffix(".html")
 
 
 class OfferComplete(Offer):

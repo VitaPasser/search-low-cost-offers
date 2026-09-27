@@ -1,10 +1,8 @@
 from builtins import str
-from typing import Any
 
 from bs4 import BeautifulSoup
 from bs4.element import AttributeValueList, Tag
 
-from scraping_lib.models import Offer, OfferIncludeBucharest
 from src.home_offer.money.cuerrency.model import Currency
 from src.scraping_lib.models import Offer, PriceOfferComplete
 from src.scraping_lib.models import OfferIncludeBucharest
@@ -26,7 +24,7 @@ def _price_ordering(price_tag: Tag):
 
 
 def _has_owner_olx(bs: BeautifulSoup) -> bool:
-    ad_container_tag= bs.find("div", attrs={"data-testid": "ad-parameters-container"})
+    ad_container_tag = bs.find("div", attrs={"data-testid": "ad-parameters-container"})
     if not ad_container_tag:
         raise IOError
     ad_tags = ad_container_tag.find_all("p")
@@ -120,13 +118,13 @@ class OlxScrapper(Scrapper):
         bs: BeautifulSoup = BeautifulSoup(html, "lxml")
         cards = bs.find_all("div",{"data-testid": "l-card"})
         if not cards:
-            raise IOError
+            raise IOError(f"Html: {html}\n\n Cards: {cards}")
         urls_with_none = [a.get("href") if (a := element.find("a")) else None
                           for element in cards]
         if any(isinstance(url, type(AttributeValueList)) for url in urls_with_none):
             raise IOError
         urls_without_none = filter(lambda x: x is not None, urls_with_none)
-        urls: list[str] = [str(url) for url in urls_without_none]
+        urls: list[str] = [str(url).split("?")[0] for url in urls_without_none]
         price_tags = [element.find("p", {"data-testid": "ad-price"})
                       for element in cards]
         price_tags_without_none = list(filter(None, price_tags))

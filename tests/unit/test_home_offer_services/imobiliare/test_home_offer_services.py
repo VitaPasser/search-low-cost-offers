@@ -15,7 +15,7 @@ from src.utils.models import BaseModel
 
 
 class TestHomeOffer(TestCase):
-    EURO_TO_ZLOTYS = 4.3
+    EURO_TO_RON_EXCHANGE_RATE = 5.27
 
     def setUp(self) -> None:
         super().setUp()
@@ -67,7 +67,7 @@ class TestHomeOffer(TestCase):
                 if offer_reference.tax:
                     expect = offer_reference.price.amount + offer_reference.tax.amount
                     if offer_reference.price.currency != Currency.EUR:
-                        expect /= self.EURO_TO_ZLOTYS
+                        expect /= self.EURO_TO_RON_EXCHANGE_RATE
 
                 actual = result.amount if (result := offer.price) else result
 
@@ -92,7 +92,7 @@ class TestHomeOffer(TestCase):
                 if offer_reference.tax and offer_reference.deposit:
                     expect = offer_reference.price.amount + offer_reference.tax.amount + offer_reference.deposit.amount
                     if offer_reference.price.currency != Currency.EUR:
-                        expect /= self.EURO_TO_ZLOTYS
+                        expect /= self.EURO_TO_RON_EXCHANGE_RATE
 
                 actual = result.amount if (result := offer.price) else result
 
@@ -117,7 +117,7 @@ class TestHomeOffer(TestCase):
                 if offer_reference.deposit:
                     expect = offer_reference.price.amount + offer_reference.deposit.amount
                     if offer_reference.price.currency != Currency.EUR:
-                        expect /= self.EURO_TO_ZLOTYS
+                        expect /= self.EURO_TO_RON_EXCHANGE_RATE
 
                 actual = result.amount if (result := offer.price) else result
 
@@ -151,7 +151,7 @@ class TestHomeOffer(TestCase):
                 expect = (offer.price.amount + offer.tax.amount + offer.deposit.amount
                           + offer.realtor_service.amount)
                 if offer.price.currency != Currency.EUR:
-                    expect /= self.EURO_TO_ZLOTYS
+                    expect /= self.EURO_TO_RON_EXCHANGE_RATE
 
             actual = result.amount if (result := offers_with_sum[0].price) else result
 
@@ -176,7 +176,7 @@ class TestHomeOffer(TestCase):
                 expect = (offer.price.amount + offer.deposit.amount
                           + offer.realtor_service.amount)
                 if offer.price.currency != Currency.EUR:
-                    expect /= self.EURO_TO_ZLOTYS
+                    expect /= self.EURO_TO_RON_EXCHANGE_RATE
 
             actual = result.amount if (result := offers_with_sum[0].price) else result
 

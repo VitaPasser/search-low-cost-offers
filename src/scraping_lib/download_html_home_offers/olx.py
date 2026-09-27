@@ -5,7 +5,9 @@ from bs4 import BeautifulSoup
 from src.scraping_lib.download_html_home_offers.service import DownloadHtmlHomeOffersService
 
 
-def pagination_max_number_scraper(html: str) -> int:
+def pagination_max_number_scraper(html: str, retries: int = 0) -> int:
+    if retries > 5:
+        raise IOError
     bs = BeautifulSoup(html, "lxml")
     pagination_list = bs.find("nav", attrs={"data-nx-name": "NexusPagination"})
     if not pagination_list:
