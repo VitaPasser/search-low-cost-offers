@@ -56,7 +56,7 @@ class TestHomeOffer(TestCase):
 
     def test_get_all_in_euro_and_sum_with_tax(self):
         asyncio.run(self.service.grab_offers(True))
-        offers_with_sum = self.service.get_in_euro_all_and_sum_with_tax()
+        offers_with_sum = self.service.get_in_euro_sum(include_tax=True)
         self.assertGreaterEqual(len(offers_with_sum), 10)
         with Session(self.engine) as session:
             for offer in offers_with_sum:
@@ -75,13 +75,13 @@ class TestHomeOffer(TestCase):
 
     def test_sort_get_all_in_euro_and_sum_with_tax(self):
         asyncio.run(self.service.grab_offers(True))
-        offers_with_sum = self.service.get_in_euro_all_and_sum_with_tax()
+        offers_with_sum = self.service.get_in_euro_sum(include_tax=True)
         self.assertGreaterEqual(len(offers_with_sum), 10)
         self.__assertAscSort(offers_with_sum)
 
     def test_get_all_in_euro_and_sum_with_tax_and_deposit(self):
         asyncio.run(self.service.grab_offers(True))
-        offers_with_sum = self.service.get_in_euro_all_and_sum_with_tax_and_deposit()
+        offers_with_sum = self.service.get_in_euro_sum(include_tax=True, include_deposit=True)
         self.assertGreaterEqual(len(offers_with_sum), 10)
         with Session(self.engine) as session:
             for offer in offers_with_sum:
@@ -100,13 +100,13 @@ class TestHomeOffer(TestCase):
 
     def test_sort_get_all_in_euro_and_sum_with_deposit(self):
         asyncio.run(self.service.grab_offers(True))
-        offers_with_sum = self.service.get_in_euro_all_and_sum_with_deposit()
+        offers_with_sum = self.service.get_in_euro_sum(include_deposit=True)
         self.assertGreaterEqual(len(offers_with_sum), 10)
         self.__assertAscSort(offers_with_sum)
 
     def test_get_all_in_euro_and_sum_with_deposit(self):
         asyncio.run(self.service.grab_offers(True))
-        offers_with_sum = self.service.get_in_euro_all_and_sum_with_deposit()
+        offers_with_sum = self.service.get_in_euro_sum(include_deposit=True)
         self.assertGreaterEqual(len(offers_with_sum), 10)
         with Session(self.engine) as session:
             for offer in offers_with_sum:
@@ -125,7 +125,7 @@ class TestHomeOffer(TestCase):
 
     def test_sort_get_all_in_euro_and_sum_with_tax_and_deposit(self):
         asyncio.run(self.service.grab_offers(True))
-        offers_with_sum = self.service.get_in_euro_all_and_sum_with_tax_and_deposit()
+        offers_with_sum = self.service.get_in_euro_sum(include_tax=True, include_deposit=True)
         self.assertGreaterEqual(len(offers_with_sum), 10)
         self.__assertAscSort(offers_with_sum)
 
@@ -140,7 +140,7 @@ class TestHomeOffer(TestCase):
 
     def test_get_all_in_euro_and_sum_with_tax_deposit_and_realtor(self):
         asyncio.run(self.service.grab_offers(True))
-        offers_with_sum = self.service.get_in_euro_all_and_sum_with_tax_deposit_and_realtor()
+        offers_with_sum = self.service.get_in_euro_sum(include_tax=True, include_deposit=True, include_realtor=True)
         self.assertGreaterEqual(len(offers_with_sum), 10)
         with Session(self.engine) as session:
             offer = session.query(HouseOfferModel).where(HouseOfferModel.id_url == offers_with_sum[0].id_url).first()
@@ -159,13 +159,13 @@ class TestHomeOffer(TestCase):
 
     def test_sort_when_get_all_in_euro_and_sum_with_tax_deposit_and_realtor(self):
         asyncio.run(self.service.grab_offers(True))
-        offers_with_sum = self.service.get_in_euro_all_and_sum_with_tax_deposit_and_realtor()
+        offers_with_sum = self.service.get_in_euro_sum(include_tax=True, include_deposit=True, include_realtor=True)
         self.assertGreaterEqual(len(offers_with_sum), 10)
         self.__assertAscSort(offers_with_sum)
 
     def test_get_all_in_euro_and_sum_with_deposit_and_realtor(self):
         asyncio.run(self.service.grab_offers(True))
-        offers_with_sum = self.service.get_in_euro_all_and_sum_with_deposit_and_realtor()
+        offers_with_sum = self.service.get_in_euro_sum(include_deposit=True, include_realtor=True)
         self.assertGreaterEqual(len(offers_with_sum), 10)
         with Session(self.engine) as session:
             offer = session.query(HouseOfferModel).where(HouseOfferModel.id_url == offers_with_sum[0].id_url).first()
@@ -184,6 +184,6 @@ class TestHomeOffer(TestCase):
 
     def test_sort_when_get_all_in_euro_and_sum_with_deposit_and_realtor(self):
         asyncio.run(self.service.grab_offers(True))
-        offers_with_sum = self.service.get_in_euro_all_and_sum_with_deposit_and_realtor()
+        offers_with_sum = self.service.get_in_euro_sum(include_deposit=True, include_realtor=True)
         self.assertGreaterEqual(len(offers_with_sum), 10)
         self.__assertAscSort(offers_with_sum)
