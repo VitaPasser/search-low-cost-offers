@@ -4,3 +4,4 @@ resource
 # Databases
 db.sqlite
 celerybeat-schedule
+data
