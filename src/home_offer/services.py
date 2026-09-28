@@ -237,3 +237,32 @@ class HomeOfferService:
                 offer_dict["url"] = self.download_pages_service.domain_url + offer_row["url"] if not offer_row["url"].startswith("http") else offer_row["url"]
                 offers.append(HouseOfferSumWithRealtorDTO(**offer_dict))
             return [_offer_prices_to_euro(offer) for offer in offers]
+
+    def get_in_euro_all_and_sum_with_realtor(self) -> list[HouseOfferSumWithRealtorDTO]:
+        with Session(self.engine) as session:
+            price_money = aliased(MoneyModel, name="price_money")
+            realtor_money = aliased(MoneyModel, name="realtor_money")
+
+            total_amount_expr = price_money.amount + realtor_money.amount
+
+            stmt = (
+                _select_to_house_offer_sum_dto(price_money, total_amount_expr, HouseOfferModel.is_has_been_realtor_services)
+                .outerjoin(price_money, HouseOfferModel.price_id == price_money.id)
+                .outerjoin(realtor_money, HouseOfferModel.realtor_service_id == realtor_money.id)
+            ).order_by(total_amount_expr.asc().nulls_last())
+
+            offers_rows = session.execute(stmt).mappings().all()
+            offers: list[HouseOfferSumWithRealtorDTO] = []
+            for offer_row in offers_rows:
+                offer_dict = {
+                    **offer_row,
+                    "price": MoneyDTO(
+                        amount=offer_row["money_price_amount"],
+                        currency=offer_row["money_price_current"]
+                    ) if offer_row["money_price_amount"] is not None else None,
+                }
+                del offer_dict["money_price_amount"]
+                del offer_dict["money_price_current"]
+                offer_dict["url"] = self.download_pages_service.domain_url + offer_row["url"] if not offer_row["url"].startswith("http") else offer_row["url"]
+                offers.append(HouseOfferSumWithRealtorDTO(**offer_dict))
+            return [_offer_prices_to_euro(offer) for offer in offers]
