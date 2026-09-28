@@ -7,13 +7,15 @@ EURO_TO_ZLOTY_EXCHANGE_RATE = 4.3
 
 class PriceOfferComplete:
     def __init__(self, price: float, tax: float | None = None, deposit: float | None = None,
-                 realtor_services: float | None = None, currency: Currency | None = None):
+                 realtor_services: float | None = None, currency: Currency | None = None, is_owner: bool | None = None):
         self.price = price
         self.tax = tax
         self.deposit = deposit
         self.is_has_been_realtor_services = realtor_services is not None
-        if not self.is_has_been_realtor_services:
+        if not self.is_has_been_realtor_services and not is_owner:
             self.realtor_service = self.price * 0.5
+        elif self.is_has_been_realtor_services and is_owner:
+            self.realtor_service = 0
         else:
             self.realtor_service = realtor_services
         self.currency = currency
@@ -58,6 +60,7 @@ class OfferIncludeBucharest(OfferComplete):
             deposit=offer.price.price,
             realtor_services=realtor_service_price,
             currency=offer.price.currency,
+            is_owner=is_owner,
         )
         if sector:
             sector = sector.strip().lower()
