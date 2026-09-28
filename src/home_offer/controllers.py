@@ -86,7 +86,7 @@ def get_home_offer_service(aggregator: AggregatorType) -> HomeOfferService:
     return service
 
 
-router = APIRouter(prefix="/house-offers", tags=["House Offers"])
+router = APIRouter(prefix="/api/v1/house-offers", tags=["House Offers"])
 
 
 @router.post("/{aggregator}/grab", status_code=status.HTTP_202_ACCEPTED)

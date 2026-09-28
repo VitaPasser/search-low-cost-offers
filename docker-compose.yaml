@@ -1,17 +1,48 @@
 services:
-  observer_houses_offers:
+  observer-houses-offers-fastapi:
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: fastapi.Dockerfile
     volumes:
       - ./data/:/home/dev/app/data/
       - ./resource:/home/dev/app/resource
       - ${WEB_DRIVER_PATH}:/home/dev/app/chromium.chromedriver:ro
+    expose:
+      - 8000
     environment:
       - REDIS_HOST=redis
       - IS_TESTING=0
     depends_on:
       - redis
+    networks:
+      - observer_network
+
+  observer-houses-offers-celery:
+    build:
+      context: .
+      dockerfile: celery.Dockerfile
+    volumes:
+      - ./data/:/home/dev/app/data/
+      - ./resource:/home/dev/app/resource
+      - ${WEB_DRIVER_PATH}:/home/dev/app/chromium.chromedriver:ro
+    expose:
+      - 8000
+    environment:
+      - REDIS_HOST=redis
+      - IS_TESTING=0
+    depends_on:
+      - redis
+    networks:
+      - observer_network
+
+  frontend:
+    build: https://github.com/VitaPasser/search-low-cost-offers-frontend.git
+    ports:
+      - "8080:8501"
+    environment:
+      - API_URL=http://observer-houses-offers-fastapi:8000/api/v1
+    depends_on:
+      - observer-houses-offers-fastapi
     networks:
       - observer_network
 

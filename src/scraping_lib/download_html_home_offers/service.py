@@ -86,7 +86,7 @@ class DownloadHtmlHomeOffersService:
 
                 print("Page Title:", await page.title())
                 html = await page.content()
-                async with await open_file(f"{self.offers_list_path}/index-{pagination_number}.html", "wt") as file:
+                async with await open_file(f"{self.offers_list_path}index-{pagination_number}.html", "wt") as file:
                     await file.write(html)
             finally:
                 if browser:
@@ -100,7 +100,7 @@ class DownloadHtmlHomeOffersService:
 
             os.mkdir(self.offers_list_path)
 
-        if Path(f"{self.offers_list_path}/index-1.html").exists() and cache:
+        if Path(f"{self.offers_list_path}index-1.html").exists() and cache:
 
             max_pagination_len = len(os.listdir(f"{self.offers_list_path}"))
             if max_pages_limit:
