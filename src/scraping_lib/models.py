@@ -31,21 +31,22 @@ class Offer:
 
 
 class OfferComplete(Offer):
-    def __init__(self, price: PriceOfferComplete, url: str):
+    def __init__(self, price: PriceOfferComplete, url: str, is_owner: bool| None):
         super().__init__(price, url)
+        self.is_owner = is_owner
 
     @classmethod
     def from_offer(cls,
                    offer: Offer,
-                   deposit: float | None) -> Self:
-        price_complete = PriceOfferComplete(offer.price.price, offer.price.tax, deposit)
-        return cls(price_complete, offer.url)
+                   deposit: float | None,
+                   is_owner: bool | None) -> Self:
+        price_complete = PriceOfferComplete(offer.price.price, offer.price.tax, deposit, is_owner=is_owner)
+        return cls(price_complete, offer.url, is_owner=is_owner)
 
 
 class OfferIncludeBucharest(OfferComplete):
     def __init__(self, price: PriceOfferComplete, url: str, is_owner: bool|None, sector: str|None):
-        super().__init__(price, url)
-        self.is_owner = is_owner
+        super().__init__(price, url, is_owner=is_owner)
         self.sector = sector
 
     @classmethod

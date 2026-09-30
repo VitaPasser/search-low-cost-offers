@@ -1,4 +1,4 @@
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from bs4.element import AttributeValueList, Tag
 
 from src.scraping_lib.models import Offer, OfferComplete, PriceOfferComplete
@@ -19,6 +19,50 @@ def _price_ordering(price_tags: Tag):
     if tax_text is not None and "czynsz" in tax_text:
         tax = int("".join([c for c in tax_text if c.isdigit() and c != "²"]))
     return PriceOfferComplete(price, tax)
+
+
+def _has_owner(bs: BeautifulSoup) -> bool:
+    table_descriptions = bs.find("div", attrs={"data-sentry-element": "StyledListContainer"})
+    if not table_descriptions:
+        raise IOError
+    table_description = table_descriptions.find("div")
+    if not table_description:
+        raise IOError
+    rows_divs = table_description.find_all("div", attrs={"data-sentry-element": "ItemGridContainer"})
+    if not rows_divs:
+        raise IOError
+    owner_row_div = rows_divs[8].find_all("div")
+    if not owner_row_div:
+        raise IOError
+    owner_value = owner_row_div[1].text
+    if not owner_value:
+        raise IOError
+    match owner_value:
+        case "prywatny":
+            is_owner = True
+        case _:
+            is_owner = False
+
+    return is_owner
+
+
+def _get_deposit(table_descriptions: Tag | None) -> int | None:
+    if not table_descriptions:
+        raise IOError
+    table_description = table_descriptions.find("div")
+    if not table_description:
+        raise IOError
+    rows_divs = table_description.find_all("div", attrs={"data-sentry-element": "ItemGridContainer"})
+    if not rows_divs:
+        raise IOError
+    deposit_row_div = rows_divs[7].find_all("div")
+    if not deposit_row_div:
+        raise IOError
+    deposit_value = "".join([c for c in deposit_row_div[1].text if c.isdigit() and c != "²"])
+    if not deposit_value:
+        raise IOError
+    deposit: int | None = int(deposit_value)
+    return deposit
 
 
 class OtodomScrapper(Scrapper):
@@ -57,24 +101,14 @@ class OtodomScrapper(Scrapper):
             bs: BeautifulSoup = BeautifulSoup(html, "lxml")
             table_descriptions = bs.find("div", attrs={"data-sentry-element": "StyledListContainer"})
             try:
-                if not table_descriptions:
-                    raise IOError
-                table_description = table_descriptions.find("div")
-                if not table_description:
-                    raise IOError
-                rows_divs = table_description.find_all("div", attrs={"data-sentry-element": "ItemGridContainer"})
-                if not rows_divs:
-                    raise IOError
-                deposit_row_div = rows_divs[7].find_all("div")
-                if not deposit_row_div:
-                    raise IOError
-                deposit_value = "".join([c for c in deposit_row_div[1].text if c.isdigit() and c != "²"])
-                if not deposit_value:
-                    raise IOError
-                deposit: int | None = int(deposit_value)
+                deposit = _get_deposit(table_descriptions)
             except IOError:
                 deposit = None
-            results.append(OfferComplete.from_offer(offer, deposit))
+            try:
+                is_owner = _has_owner(bs)
+            except IOError:
+                is_owner = None
+            results.append(OfferComplete.from_offer(offer, deposit, is_owner=is_owner))
 
         return results
 

@@ -18,6 +18,7 @@ def _house_offer_to_model(offer: OfferComplete) -> HouseOfferModel:
         deposit=deposit,
         realtor_service=realtor_service,
         is_has_been_realtor_services=offer.price.is_has_been_realtor_services,
+        is_owner=offer.is_owner
     )
 
 
