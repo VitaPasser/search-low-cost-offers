@@ -43,7 +43,12 @@ class OtodomScrapper(Scrapper):
         prices_tags = [element.find("div", attrs={"data-cy": "listing-item-price"}) for
                        element in list_elements]
         prices_tags_without_none = list(filter(None, prices_tags))
-        prices = [_price_ordering(price) for price in prices_tags_without_none]
+        prices = []
+        for price in prices_tags_without_none:
+            try:
+                prices.append(_price_ordering(price))
+            except IOError:
+                prices.append(None)
         return [Offer(price, url) for price, url in zip(prices, urls)]
 
     def parse_offer_page(self, htmls: list[str], offers: list[Offer]) -> list[OfferComplete]:

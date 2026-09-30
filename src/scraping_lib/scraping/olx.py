@@ -128,17 +128,25 @@ class OlxScrapper(Scrapper):
         price_tags = [element.find("p", {"data-testid": "ad-price"})
                       for element in cards]
         price_tags_without_none = list(filter(None, price_tags))
-        prices = [_price_ordering(price) for price in price_tags_without_none]
+        prices = []
+        for price in price_tags_without_none:
+            try:
+                prices.append(_price_ordering(price))
+            except IOError:
+                prices.append(None)
         return [Offer(price, url) for price, url in zip(prices, urls)]
 
     def parse_offer_page(self, htmls: list[str], offers: list[Offer]) -> list[OfferIncludeBucharest]:
         results: list[OfferIncludeBucharest] = []
         for html, offer in zip(htmls, offers):
-            match offer.url:
-                # Storia
-                case f if f.startswith("https://www.storia.ro"): results.append(_storia_page_offer(html, offer))
-                # OLX
-                case f if f.startswith("/d/oferta/"): results.append(_olx_page_offer(html, offer))
-                case _: raise IOError
+            try:
+                match offer.url:
+                    # Storia
+                    case f if f.startswith("https://www.storia.ro"): results.append(_storia_page_offer(html, offer))
+                    # OLX
+                    case f if f.startswith("/d/oferta/"): results.append(_olx_page_offer(html, offer))
+                    case _: raise IOError
+            except IOError:
+                continue
 
         return results

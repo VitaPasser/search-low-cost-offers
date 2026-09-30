@@ -101,7 +101,12 @@ class ImobiliareScrapper(Scrapper):
         price_tags = [element.find("span", {"class": "text-text-price"})
                       for element in article_list]
         price_tags_without_none = list(filter(None, price_tags))
-        prices = [_price_ordering(price) for price in price_tags_without_none]
+        prices = []
+        for price in price_tags_without_none:
+            try:
+                prices.append(_price_ordering(price))
+            except IOError:
+                prices.append(None)
         return [Offer(price, url) for price, url in zip(prices, urls)]
 
     def parse_offer_page(self, htmls: list[str], offers: list[Offer]) -> list[OfferIncludeBucharest]:
