@@ -34,7 +34,6 @@ class SumCalculationType(StrEnum):
     WITH_REALTOR = "with_realtor"
 
 
-# Создаем движки и сервисы единоразово при старте приложения (KISS & Performance)
 ENGINES: dict[AggregatorType, Engine] = {
     AggregatorType.OTODOM: create_engine(f"sqlite:///{PROJECT_ROOT}/data/db-otodom.sqlite"),
     AggregatorType.IMOBILIARE: create_engine(f"sqlite:///{PROJECT_ROOT}/data/db-imobiliare.sqlite"),
@@ -62,7 +61,6 @@ SERVICES: dict[AggregatorType, HomeOfferService] = {
     ),
 }
 
-# Маппинг типов расчета в флаги метода get_in_euro_sum
 CALC_CONFIGS = {
     SumCalculationType.WITH_TAX: {"include_tax": True},
     SumCalculationType.WITH_TAX_AND_DEPOSIT: {"include_tax": True, "include_deposit": True},
@@ -97,7 +95,7 @@ async def grab_offers(
     limit_list_offers: int | None = Query(default=None),
     limit_offers: int | None = Query(default=None),
 ) -> dict[str, str]:
-    """Запустить скрапинг объявлений для выбранного агрегатора."""
+    """Start scraping ads for the selected aggregator."""
     service = get_home_offer_service(aggregator)
     await service.grab_offers(
         cache=cache,
@@ -111,10 +109,10 @@ async def grab_offers(
 def get_offers(
     aggregator: AggregatorType,
     calc_type: SumCalculationType = Query(
-        default=SumCalculationType.NONE, description="Тип подсчета суммарных затрат в евро"
+        default=SumCalculationType.NONE, description="Total Cost Calculation Type in Euros"
     ),
 ) -> list[HouseOfferDTO] | list[HouseOfferSumWithRealtorDTO]:
-    """Получить предложения выбранного агрегатора с расчетом суммы в евро."""
+    """Get offers from the selected aggregator with the amount calculated in euros."""
     service = get_home_offer_service(aggregator)
 
     if calc_type == SumCalculationType.NONE:
