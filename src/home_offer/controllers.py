@@ -8,6 +8,7 @@ from src.home_offer.dto import (
     HouseOfferSumWithRealtorDTO,
 )
 from src.home_offer.services import HomeOfferService
+from src.scraping_lib.constants import PROJECT_ROOT
 from src.scraping_lib.download_html_home_offers.imobiliare import imobiliare_download_html_home_offers
 from src.scraping_lib.download_html_home_offers.olx import olx_download_html_home_offers
 from src.scraping_lib.download_html_home_offers.otodom import otodom_download_html_home_offers
@@ -35,9 +36,9 @@ class SumCalculationType(StrEnum):
 
 # Создаем движки и сервисы единоразово при старте приложения (KISS & Performance)
 ENGINES: dict[AggregatorType, Engine] = {
-    AggregatorType.OTODOM: create_engine("sqlite:///./data/db-otodom.sqlite"),
-    AggregatorType.IMOBILIARE: create_engine("sqlite:///./data/db-imobiliare.sqlite"),
-    AggregatorType.OLX: create_engine("sqlite:///./data/db-olx.sqlite"),
+    AggregatorType.OTODOM: create_engine(f"sqlite:///{PROJECT_ROOT}/data/db-otodom.sqlite"),
+    AggregatorType.IMOBILIARE: create_engine(f"sqlite:///{PROJECT_ROOT}/data/db-imobiliare.sqlite"),
+    AggregatorType.OLX: create_engine(f"sqlite:///{PROJECT_ROOT}/data/db-olx.sqlite"),
 }
 
 for engine in ENGINES.values():

@@ -5,6 +5,7 @@ from celery import Celery, shared_task
 from celery.schedules import crontab
 from sqlalchemy import create_engine
 
+from src.scraping_lib.constants import PROJECT_ROOT
 from src.scraping_lib.download_html_home_offers.olx import olx_download_html_home_offers
 from src.scraping_lib.scraping.olx import OlxScrapper
 from src.scraping_lib.scraping.imobiliare import ImobiliareScrapper
@@ -52,7 +53,7 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
 
 @shared_task(name='src.home_offer.tasks.grab_house_offers_otodom')
 def grab_house_offers_otodom():
-    engine = create_engine("sqlite:///./data/db-otodom.sqlite")
+    engine = create_engine(f"sqlite:///{PROJECT_ROOT}/data/db-otodom.sqlite")
     BaseModel.metadata.create_all(engine)
     download_html_home_offers_service = otodom_download_html_home_offers
     service = HomeOfferService(
@@ -65,7 +66,7 @@ def grab_house_offers_otodom():
 
 @shared_task(name='src.home_offer.tasks.grab_house_offers_imobiliare')
 def grab_house_offers_imobiliare():
-    engine = create_engine("sqlite:///./data/db-imobiliare.sqlite")
+    engine = create_engine(f"sqlite:///{PROJECT_ROOT}/data/db-imobiliare.sqlite")
     BaseModel.metadata.create_all(engine)
     download_html_home_offers_service = imobiliare_download_html_home_offers
     service = HomeOfferService(
@@ -78,7 +79,7 @@ def grab_house_offers_imobiliare():
 
 @shared_task(name='src.home_offer.tasks.grab_house_offers_olx')
 def grab_house_offers_olx():
-    engine = create_engine("sqlite:///./data/db-olx.sqlite")
+    engine = create_engine(f"sqlite:///{PROJECT_ROOT}/data/db-olx.sqlite")
     BaseModel.metadata.create_all(engine)
     download_html_home_offers_service = olx_download_html_home_offers
     service = HomeOfferService(
