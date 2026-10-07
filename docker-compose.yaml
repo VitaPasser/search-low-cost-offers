@@ -6,12 +6,14 @@ services:
     volumes:
       - ./data/:/home/dev/app/data/
       - ./resource:/home/dev/app/resource
+      - ./logs/:/home/dev/app/logs/
       - ${WEB_DRIVER_PATH}:/home/dev/app/chromium.chromedriver:ro
     expose:
       - 8000
     environment:
       - REDIS_HOST=redis
       - IS_TESTING=0
+      - LOGGING_DIR_PATH=/home/dev/app/logs/
     depends_on:
       - redis
     networks:
@@ -25,11 +27,13 @@ services:
       - ./data/:/home/dev/app/data/
       - ./resource:/home/dev/app/resource
       - ${WEB_DRIVER_PATH}:/home/dev/app/chromium.chromedriver:ro
+      - ./logs/:/home/dev/app/logs/
     expose:
       - 8000
     environment:
       - REDIS_HOST=redis
       - IS_TESTING=0
+      - LOGGING_DIR_PATH=/home/dev/app/logs/
     depends_on:
       - redis
     networks:
