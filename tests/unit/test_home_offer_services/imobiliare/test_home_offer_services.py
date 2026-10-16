@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from src.home_offer.dto import HouseOfferDTO
 from src.home_offer.dto import HouseOfferSumDTO
 from src.home_offer.model import HouseOfferModel
-from src.home_offer.money.cuerrency.model import Currency
+from src.home_offer.money.currency.model import Currency
 from src.home_offer.services import HomeOfferService
 from src.scraping_lib.download_html_home_offers.imobiliare import imobiliare_download_html_home_offers
 from src.scraping_lib.scraping.imobiliare import ImobiliareScrapper

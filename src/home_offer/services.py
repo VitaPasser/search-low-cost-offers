@@ -1,7 +1,7 @@
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session, aliased
 
-from src.home_offer.dto import HouseOfferDTO, HouseOfferSumWithRealtorDTO
+from src.home_offer.dto import HouseOfferDTO, HouseOfferSumWithRealtorDTO, HouseOfferSumDTO
 from src.home_offer.mappers import _house_offer_to_model, _offer_model_to_model_dto, _offer_prices_to_euro
 from src.home_offer.model import HouseOfferModel
 from src.home_offer.money.dto import MoneyDTO
@@ -67,7 +67,7 @@ class HomeOfferService:
         include_tax: bool = False,
         include_deposit: bool = False,
         include_realtor: bool = False,
-    ) -> list[HouseOfferSumWithRealtorDTO]:
+    ) -> list[HouseOfferSumWithRealtorDTO|HouseOfferSumDTO]:
         """Единый метод расчета суммарной стоимости с опциональными компонентами."""
         with Session(self.engine) as session:
             price_money = aliased(MoneyModel, name="price_money")

@@ -1,7 +1,7 @@
 from sqlalchemy import Enum
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.home_offer.money.cuerrency.model import Currency
+from src.home_offer.money.currency.model import Currency
 from src.utils.models import BaseModel
 
 

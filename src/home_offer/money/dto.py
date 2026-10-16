@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from src.home_offer.money.cuerrency.model import Currency
+from src.home_offer.money.currency.model import Currency
 
 
 @dataclass

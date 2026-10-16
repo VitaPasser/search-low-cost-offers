@@ -7,13 +7,13 @@ from unittest import TestCase
 from sqlalchemy import create_engine, Select
 from sqlalchemy.orm import Session
 
-from src.scraping_lib.constants import PROJECT_ROOT
 from src.scraping_lib.download_html_home_offers.imobiliare import imobiliare_download_html_home_offers
 from src.scraping_lib.scraping.imobiliare import ImobiliareScrapper
 from src.home_offer.model import HouseOfferModel
 from src.home_offer.services import HomeOfferService
 from src.utils.models import BaseModel
 from src.utils.others import str_env_to_bool
+from utils.constants import PROJECT_ROOT
 
 
 class TestHomeOffer(TestCase):

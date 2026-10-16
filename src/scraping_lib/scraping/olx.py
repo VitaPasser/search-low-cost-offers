@@ -3,7 +3,7 @@ from builtins import str
 from bs4 import BeautifulSoup
 from bs4.element import AttributeValueList, Tag
 
-from src.home_offer.money.cuerrency.model import Currency
+from src.home_offer.money.currency.model import Currency
 from src.scraping_lib.models import Offer, PriceOfferComplete
 from src.scraping_lib.models import OfferIncludeBucharest
 from src.scraping_lib.scraping.abstract_scrapper import Scrapper

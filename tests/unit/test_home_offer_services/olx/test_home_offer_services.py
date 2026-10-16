@@ -9,7 +9,7 @@ from src.scraping_lib.scraping.olx import OlxScrapper
 from src.home_offer.dto import HouseOfferDTO
 from src.home_offer.dto import HouseOfferSumDTO
 from src.home_offer.model import HouseOfferModel
-from src.home_offer.money.cuerrency.model import Currency
+from src.home_offer.money.currency.model import Currency
 from src.home_offer.services import HomeOfferService
 from src.utils.models import BaseModel
 

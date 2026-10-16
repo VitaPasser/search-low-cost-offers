@@ -5,7 +5,6 @@ from celery import Celery, shared_task
 from celery.schedules import crontab
 from sqlalchemy import create_engine
 
-from src.scraping_lib.constants import PROJECT_ROOT
 from src.scraping_lib.download_html_home_offers.olx import olx_download_html_home_offers
 from src.scraping_lib.scraping.olx import OlxScrapper
 from src.scraping_lib.scraping.imobiliare import ImobiliareScrapper
@@ -15,6 +14,7 @@ from src.scraping_lib.download_html_home_offers.otodom import otodom_download_ht
 from src.scraping_lib.scraping.otodom import OtodomScrapper
 from src.utils.models import BaseModel
 from src.utils.others import str_env_to_bool
+from utils.constants import PROJECT_ROOT
 
 
 def setup_periodic_tasks(sender: Celery, **kwargs):

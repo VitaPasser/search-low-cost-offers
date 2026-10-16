@@ -1,6 +1,6 @@
 from typing import Self
 
-from src.home_offer.money.cuerrency.model import Currency
+from src.home_offer.money.currency.model import Currency
 
 EURO_TO_ZLOTY_EXCHANGE_RATE = 4.3
 

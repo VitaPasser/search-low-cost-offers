@@ -1,4 +1,4 @@
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup
 from bs4.element import AttributeValueList, Tag
 
 from src.scraping_lib.models import Offer, OfferComplete, PriceOfferComplete

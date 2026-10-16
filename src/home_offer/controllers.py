@@ -8,7 +8,6 @@ from src.home_offer.dto import (
     HouseOfferSumWithRealtorDTO,
 )
 from src.home_offer.services import HomeOfferService
-from src.scraping_lib.constants import PROJECT_ROOT
 from src.scraping_lib.download_html_home_offers.imobiliare import imobiliare_download_html_home_offers
 from src.scraping_lib.download_html_home_offers.olx import olx_download_html_home_offers
 from src.scraping_lib.download_html_home_offers.otodom import otodom_download_html_home_offers
@@ -16,6 +15,7 @@ from src.scraping_lib.scraping.imobiliare import ImobiliareScrapper
 from src.scraping_lib.scraping.olx import OlxScrapper
 from src.scraping_lib.scraping.otodom import OtodomScrapper
 from src.utils.models import BaseModel
+from utils.constants import PROJECT_ROOT
 
 
 class AggregatorType(StrEnum):

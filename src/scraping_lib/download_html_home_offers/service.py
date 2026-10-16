@@ -1,207 +1,202 @@
 import hashlib
 import json
-import logging
-import os
-from datetime import date
-from functools import cached_property
 from pathlib import Path
-from typing import List, Callable
+from typing import List, Callable, Optional
 
 import anyio
 from anyio import open_file
-from dotenv import load_dotenv
-from playwright.async_api import async_playwright, Playwright, Browser, Page, ProxySettings
+from playwright.async_api import async_playwright, Browser, Page, Error as PlaywrightError
 from playwright_stealth import Stealth
 
-from src.scraping_lib.constants import PROJECT_ROOT
 from src.scraping_lib.models import Offer
+from utils.constants import PROJECT_ROOT
+from utils.logging import get_logger
 
+logger = get_logger(__name__)
 
-load_dotenv()
-log_dir = os.getenv("LOGGING_DIR_PATH")
-if not log_dir:
-    raise ValueError("LOGGING_DIR_PATH env not set")
+class NetworkService:
 
-if len(log_dir) > 0 and log_dir[-1] == "/":
-    log_dir = log_dir[:-1]
-log_dir = f"{log_dir}/{date.today()}"
-# Create a 'logs' directory if it doesn't exist
-os.makedirs(log_dir, exist_ok=True)
+    def __init__(self, browser: Browser, session_data: dict, max_retries: int = 15):
+        self.browser = browser
+        self.session_data = session_data
+        self.max_retries = max_retries
 
-logging.basicConfig(
-    filename=os.path.join(log_dir, "internal.log"),
-    level=logging.ERROR,
-    format="%(name)s %(asctime)s %(levelname)s %(message)s",
-)
-
-
-async def get_response(url: str, p: Playwright, session, try_count: int = 0, browser: Browser| None = None) -> Page:
-    if try_count > 15:
-        if browser:
-            await browser.close()
-        raise IOError
-
-    try:
-
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(
-            user_agent=session["user_agent"],
+    async def get_page(self, url: str) -> Page:
+        context = await self.browser.new_context(
+            user_agent=self.session_data.get("user_agent")
         )
-        await context.add_cookies(session["cookies"])
+        if "cookies" in self.session_data:
+            await context.add_cookies(self.session_data["cookies"])
+
         page = await context.new_page()
 
-        response = await page.goto(url)
-        await page.wait_for_timeout(3000)
-    except:
-        logging.error(
-            f"try: {try_count}")
-        return await get_response(url, p, session, try_count + 1, browser)
+        for try_count in range(self.max_retries):
+            try:
+                response = await page.goto(url)
+                await page.wait_for_timeout(3000)
 
-    if response is None:
-        raise IOError
+                if response is None:
+                    raise IOError(f"No response received for {url}")
 
-    match response.status:
-        case 200 | 410 | 404: return page
-        case 403 | 400:
-            await anyio.sleep(3 * (try_count + 1))
-            return await get_response(url, p, session, try_count + 1, browser)
-        case _:
-            if browser:
-                await browser.close()
-            logging.error(f"Page: {page} try: {try_count} response status: {response.status} response html: {await response.text()}")
-            raise IOError
+                status = response.status
+                if status in (200, 410, 404):
+                    return page
+                elif status in (403, 400):
+                    await anyio.sleep(3 * (try_count + 1))
+                    continue
+                else:
+                    body = await response.text()
+                    logger.error(f"Bad status {status} for URL {url}. Body: {body[:200]}...")
+                    raise IOError(f"Unexpected status code: {status}")
+
+            except (PlaywrightError, IOError) as e:
+                logger.warning(f"Attempt {try_count + 1} failed for {url}: {e}")
+                await anyio.sleep(2 * (try_count + 1))
+
+        await context.close()
+        raise IOError(f"Max retries exceeded for URL: {url}")
 
 
 class DownloadHtmlHomeOffersService:
-    def __init__(self, domain_url: str, url_list: str, name: str, pagination_number_max_scraper: Callable[[str], int]):
+    def __init__(
+            self,
+            domain_url: str,
+            url_list: str,
+            name: str,
+            pagination_number_max_scraper: Callable[[str], int]
+    ):
         self.domain_url = domain_url
         self.url_list = url_list
+        self.name = name
         self.pagination_number_max_scraper = pagination_number_max_scraper
 
-        self.name = name
-        if not Path(self.resource_path).exists():
+        self.resource_path.mkdir(parents=True, exist_ok=True)
+        self.offers_list_path.mkdir(parents=True, exist_ok=True)
+        self.offers_path.mkdir(parents=True, exist_ok=True)
 
-            os.mkdir(self.resource_path)
+    @property
+    def resource_path(self) -> Path:
+        return Path(PROJECT_ROOT) / "resource" / self.name
 
-    @cached_property
-    def resource_path(self):
-        return f"{PROJECT_ROOT}/resource/{self.name}"
+    @property
+    def browser_session_directory_path(self) -> Path:
+        return Path(PROJECT_ROOT) / "resource" / "sessions"
 
-    @cached_property
-    def browser_session_directory_path(self):
-        return f"{PROJECT_ROOT}/resource/sessions/"
+    @property
+    def browser_session_path(self) -> Path:
+        return self.browser_session_directory_path / f"{self.name}_session.json"
 
-    @cached_property
-    def browser_session_path(self):
-        return f"{self.browser_session_directory_path}{self.name}_session.json"
+    @property
+    def offers_list_path(self) -> Path:
+        return self.resource_path / "offers-list"
 
-    @cached_property
-    def offers_list_path(self):
-        return f"{self.resource_path}/offers-list/"
+    @property
+    def offers_path(self) -> Path:
+        return self.resource_path / "offers"
 
-    @cached_property
-    def offers_path(self):
-        return f"{self.resource_path}/offers/"
-
-    async def download_offers_list_page(self, pagination_number: int) -> str:
-        url = f"{self.url_list}&page={pagination_number}"
-        if pagination_number == 1:
-            url = f"{self.url_list}"
+    async def _load_session(self) -> dict:
+        if not self.browser_session_path.exists():
+            raise FileNotFoundError(
+                f"Session file not found at {self.browser_session_path}. Run save_session() first."
+            )
         async with await open_file(self.browser_session_path, "r", encoding="utf-8") as f:
-            session = json.loads(await f.read())
+            return json.loads(await f.read())
 
-        async with Stealth().use_async(async_playwright()) as p:
-            try:
-                page = await get_response(url, p, session)
+    async def download_offers_list_page(self, pagination_number: int, net_service: NetworkService) -> str:
+        url = f"{self.url_list}&page={pagination_number}" if pagination_number > 1 else self.url_list
+        page = await net_service.get_page(url)
 
-                print("Page Title:", await page.title())
-                html = await page.content()
-                async with await open_file(f"{self.offers_list_path}index-{pagination_number}.html", "wt") as file:
-                    await file.write(html)
-            finally:
-                ...
+        try:
+            print("Page Title:", await page.title())
+            html = await page.content()
+            file_path = self.offers_list_path / f"index-{pagination_number}.html"
+
+            async with await open_file(file_path, "wt", encoding="utf-8") as file:
+                await file.write(html)
             return html
+        finally:
+            await page.context.close()
 
-    async def download_or_load_list_html(self, cache: bool = True, max_pages_limit: int | None = None) -> List[str]:
-        htmls: list[str] = []
+    async def download_or_load_list_html(self, cache: bool = True, max_pages_limit: Optional[int] = None) -> List[str]:
+        htmls: List[str] = []
+        first_page_path = self.offers_list_path / "index-1.html"
 
-        if not Path(self.offers_list_path).exists():
-
-            os.mkdir(self.offers_list_path)
-
-        if Path(f"{self.offers_list_path}index-1.html").exists() and cache:
-
-            max_pagination_len = len(os.listdir(f"{self.offers_list_path}"))
+        if first_page_path.exists() and cache:
+            files = list(self.offers_list_path.glob("index-*.html"))
+            max_pagination_len = len(files)
             if max_pages_limit:
-                max_pagination_len = max_pages_limit if max_pagination_len >= max_pages_limit else max_pagination_len
+                max_pagination_len = min(max_pagination_len, max_pages_limit)
+
             for pagination_number in range(1, max_pagination_len + 1):
-
-                async with await open_file(f"{self.offers_list_path}index-{pagination_number}.html", "rt") as file:
-                    htmls.append(await file.read())
-
+                file_path = self.offers_list_path / f"index-{pagination_number}.html"
+                if file_path.exists():
+                    async with await open_file(file_path, "rt", encoding="utf-8") as file:
+                        htmls.append(await file.read())
             return htmls
 
-        pagination_number_start: int = 1
-        htmls.append(await self.download_offers_list_page(pagination_number_start))
+        session = await self._load_session()
 
-        pagination_number_max = self.pagination_number_max_scraper(htmls[0])
-        if max_pages_limit:
-            pagination_number_max = max_pages_limit if pagination_number_max >= max_pages_limit else pagination_number_max
+        async with Stealth().use_async(async_playwright()) as p:
+            browser = await p.chromium.launch(headless=True)
+            net_service = NetworkService(browser, session)
 
+            try:
+                first_page_html = await self.download_offers_list_page(1, net_service)
+                htmls.append(first_page_html)
 
-        for pagination_number in range(pagination_number_start + 1, pagination_number_max + 1):
+                pagination_number_max = self.pagination_number_max_scraper(first_page_html)
+                if max_pages_limit:
+                    pagination_number_max = min(pagination_number_max, max_pages_limit)
 
-            htmls.append(await self.download_offers_list_page(pagination_number))
+                for pagination_number in range(2, pagination_number_max + 1):
+                    html = await self.download_offers_list_page(pagination_number, net_service)
+                    htmls.append(html)
+            finally:
+                await browser.close()
 
         return htmls
 
-    async def download_html_offers(self, offers: List[Offer], max_pages_limit: int | None = None) -> List[str]:
-        async with await open_file(self.browser_session_path, "r", encoding="utf-8") as f:
-            session = json.loads(await f.read())
-
-        if not Path(self.offers_path).exists():
-            os.mkdir(self.offers_path)
-        offers_limited = offers
-        if max_pages_limit:
-            offers_limited = offers[:max_pages_limit]
-
+    async def download_html_offers(self, offers: List[Offer], max_pages_limit: Optional[int] = None) -> List[str]:
+        session = await self._load_session()
+        offers_limited = offers[:max_pages_limit] if max_pages_limit else offers
         htmls: List[str] = [""] * len(offers_limited)
-
         limiter = anyio.CapacityLimiter(10)
 
-        async def fetch_one(index: int, offer: Offer):
-            async with limiter:
-                offer_file_name = hashlib.sha512(offer.url.encode('utf-8')).hexdigest()
+        async with Stealth().use_async(async_playwright()) as p:
+            browser = await p.chromium.launch(headless=True)
+            net_service = NetworkService(browser, session)
 
-                file_path = Path(f"{self.offers_path}{offer_file_name}.html")
-                if file_path.exists():
+            try:
+                async def fetch_one(index: int, offer: Offer):
+                    async with limiter:
+                        offer_file_name = hashlib.sha512(offer.url.encode('utf-8')).hexdigest()
+                        file_path = self.offers_path / f"{offer_file_name}.html"
 
-                    async with await open_file(file_path, "rt") as file:
-                        htmls[index] = await file.read()
-                        return
+                        if file_path.exists():
+                            async with await open_file(file_path, "rt", encoding="utf-8") as file:
+                                htmls[index] = await file.read()
+                            return
 
-                async with Stealth().use_async(async_playwright()) as p:
-                    try:
-                        url = f"{self.domain_url}{offer.url}"
-                        if offer.url.startswith("http"):
-                            url = offer.url
+                        url = offer.url if offer.url.startswith("http") else f"{self.domain_url}{offer.url}"
 
-                        page = await get_response(url, p, session)
+                        try:
+                            page = await net_service.get_page(url)
+                            print(f"{index + 1}/{len(htmls)}: Page Title:", await page.title())
+                            html = await page.content()
 
-                        print(f"{index}/{len(htmls)}: Page Title:", await page.title())
+                            async with await open_file(file_path, "wt", encoding="utf-8") as file:
+                                await file.write(html)
 
-                        html = await page.content()
-                        async with await open_file(file_path, "wt") as file:
-                            await file.write(html)
+                            htmls[index] = html
+                            await page.context.close()
+                        except Exception as e:
+                            logger.exception(f"Failed to fetch offer {url}: {e}")
 
-                        htmls[index] = html
-                    finally:
-                        ...
-
-        # Запускаем все задачи параллельно через Таск-группу AnyIO
-        async with anyio.create_task_group() as tg:
-            for i, offer in enumerate(offers_limited):
-                tg.start_soon(fetch_one, i, offer) # noqa
+                async with anyio.create_task_group() as tg:
+                    for i, offer in enumerate(offers_limited):
+                        tg.start_soon(fetch_one, i, offer) # noqa
+            finally:
+                await browser.close()
 
         return htmls
 
@@ -223,11 +218,9 @@ class DownloadHtmlHomeOffersService:
                 "cookies": cookies
             }
 
-            if not os.path.exists(self.browser_session_directory_path):
-                os.mkdir(self.browser_session_directory_path)
+            self.browser_session_directory_path.mkdir(parents=True, exist_ok=True)
             async with await open_file(self.browser_session_path, "wt", encoding="utf-8") as f:
                 await f.write(json.dumps(session_data, indent=4, ensure_ascii=False))
                 print("[*] Complete Successfully")
-
 
             await browser.close()

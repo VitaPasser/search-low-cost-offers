@@ -1,5 +1,5 @@
 from src.home_offer.money.dto import MoneyDTO
-from src.home_offer.money.cuerrency.model import Currency
+from src.home_offer.money.currency.model import Currency
 from src.home_offer.money.model import MoneyModel
 from src.scraping_lib.models import PriceOfferComplete
 
