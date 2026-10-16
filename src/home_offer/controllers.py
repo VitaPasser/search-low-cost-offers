@@ -15,7 +15,7 @@ from src.scraping_lib.scraping.imobiliare import ImobiliareScrapper
 from src.scraping_lib.scraping.olx import OlxScrapper
 from src.scraping_lib.scraping.otodom import OtodomScrapper
 from src.utils.models import BaseModel
-from utils.constants import PROJECT_ROOT
+from src.utils.constants import PROJECT_ROOT
 
 
 class AggregatorType(StrEnum):

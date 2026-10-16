@@ -9,8 +9,8 @@ from playwright.async_api import async_playwright, Browser, Page, Error as Playw
 from playwright_stealth import Stealth
 
 from src.scraping_lib.models import Offer
-from utils.constants import PROJECT_ROOT
-from utils.logging import get_logger
+from src.utils.constants import PROJECT_ROOT
+from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
