@@ -21,7 +21,7 @@ def pagination_max_number_scraper(html: str, retries: int = 0) -> int:
 
 olx_download_html_home_offers = DownloadHtmlHomeOffersService(
         domain_url="https://www.olx.ro",
-        url_list="https://www.olx.ro/imobiliare/apartamente-garsoniere-de-inchiriat/2-camere/bucuresti/?currency=EUR&search%5Bfilter_float_price:to%5D=400",
+        url_list="https://www.olx.ro/imobiliare/apartamente-garsoniere-de-inchiriat/2-camere/bucuresti/?currency=EUR&search%5Bfilter_float_price:to%5D=450",
         name="olx",
         pagination_number_max_scraper=pagination_max_number_scraper
     )

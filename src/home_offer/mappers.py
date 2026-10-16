@@ -25,6 +25,10 @@ def _house_offer_to_model(offer: OfferComplete) -> HouseOfferModel:
 @dispatch(OfferIncludeBucharest)
 def _house_offer_to_model(offer: OfferIncludeBucharest) -> HouseOfferModel:
     price, tax, deposit, realtor_service = price_offer_complete_to_monies(offer.price)
+    try:
+        sector = string_to_bucharest_sector(offer.sector) if offer.sector else None
+    except ValueError:
+        sector = None
     return HouseOfferModel(
         url=offer.url,
         id_url=offer.id,
@@ -33,7 +37,7 @@ def _house_offer_to_model(offer: OfferIncludeBucharest) -> HouseOfferModel:
         deposit=deposit,
         realtor_service=realtor_service,
         is_has_been_realtor_services=offer.price.is_has_been_realtor_services,
-        sector=string_to_bucharest_sector(offer.sector) if offer.sector else None,
+        sector=sector,
         is_owner=offer.is_owner
     )
 

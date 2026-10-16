@@ -1,44 +1,74 @@
 import hashlib
 import json
+import logging
 import os
+from datetime import date
 from functools import cached_property
 from pathlib import Path
 from typing import List, Callable
 
 import anyio
 from anyio import open_file
-from playwright.async_api import async_playwright, Playwright, Browser, Page
+from dotenv import load_dotenv
+from playwright.async_api import async_playwright, Playwright, Browser, Page, ProxySettings
 from playwright_stealth import Stealth
 
 from src.scraping_lib.constants import PROJECT_ROOT
 from src.scraping_lib.models import Offer
 
 
-async def get_response(url: str, p: Playwright, session, try_count: int = 0) -> tuple[Browser, Page]:
+load_dotenv()
+log_dir = os.getenv("LOGGING_DIR_PATH")
+if not log_dir:
+    raise ValueError("LOGGING_DIR_PATH env not set")
+
+if len(log_dir) > 0 and log_dir[-1] == "/":
+    log_dir = log_dir[:-1]
+log_dir = f"{log_dir}/{date.today()}"
+# Create a 'logs' directory if it doesn't exist
+os.makedirs(log_dir, exist_ok=True)
+
+logging.basicConfig(
+    filename=os.path.join(log_dir, "internal.log"),
+    level=logging.ERROR,
+    format="%(name)s %(asctime)s %(levelname)s %(message)s",
+)
+
+
+async def get_response(url: str, p: Playwright, session, try_count: int = 0, browser: Browser| None = None) -> Page:
     if try_count > 15:
+        if browser:
+            await browser.close()
         raise IOError
 
-    browser = await p.chromium.launch(headless=True)
-    context = await browser.new_context(
-        user_agent=session["user_agent"],
-    )
-    await context.add_cookies(session["cookies"])
-    page = await context.new_page()
+    try:
 
-    response = await page.goto(url)
-    await page.wait_for_timeout(3000)
+        browser = await p.chromium.launch(headless=True)
+        context = await browser.new_context(
+            user_agent=session["user_agent"],
+        )
+        await context.add_cookies(session["cookies"])
+        page = await context.new_page()
+
+        response = await page.goto(url)
+        await page.wait_for_timeout(3000)
+    except:
+        logging.error(
+            f"try: {try_count}")
+        return await get_response(url, p, session, try_count + 1, browser)
 
     if response is None:
         raise IOError
 
     match response.status:
-        case 200 | 410 | 404: return browser, page
+        case 200 | 410 | 404: return page
         case 403 | 400:
             await anyio.sleep(3 * (try_count + 1))
-            return await get_response(url, p, session, try_count + 1)
+            return await get_response(url, p, session, try_count + 1, browser)
         case _:
             if browser:
                 await browser.close()
+            logging.error(f"Page: {page} try: {try_count} response status: {response.status} response html: {await response.text()}")
             raise IOError
 
 
@@ -82,15 +112,14 @@ class DownloadHtmlHomeOffersService:
 
         async with Stealth().use_async(async_playwright()) as p:
             try:
-                browser, page = await get_response(url, p, session)
+                page = await get_response(url, p, session)
 
                 print("Page Title:", await page.title())
                 html = await page.content()
                 async with await open_file(f"{self.offers_list_path}index-{pagination_number}.html", "wt") as file:
                     await file.write(html)
             finally:
-                if browser:
-                    await browser.close()
+                ...
             return html
 
     async def download_or_load_list_html(self, cache: bool = True, max_pages_limit: int | None = None) -> List[str]:
@@ -157,7 +186,7 @@ class DownloadHtmlHomeOffersService:
                         if offer.url.startswith("http"):
                             url = offer.url
 
-                        browser, page = await get_response(url, p, session)
+                        page = await get_response(url, p, session)
 
                         print(f"{index}/{len(htmls)}: Page Title:", await page.title())
 
@@ -167,7 +196,7 @@ class DownloadHtmlHomeOffersService:
 
                         htmls[index] = html
                     finally:
-                        await browser.close()
+                        ...
 
         # Запускаем все задачи параллельно через Таск-группу AnyIO
         async with anyio.create_task_group() as tg:
