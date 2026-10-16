@@ -13,7 +13,7 @@ from src.home_offer.model import HouseOfferModel
 from src.home_offer.services import HomeOfferService
 from src.utils.models import BaseModel
 from src.utils.others import str_env_to_bool
-from utils.constants import PROJECT_ROOT
+from src.utils.constants import PROJECT_ROOT
 
 
 class TestHomeOffer(TestCase):

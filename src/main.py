@@ -3,7 +3,7 @@ import os
 from celery import Celery
 from fastapi import FastAPI
 
-from utils.logging import get_logger
+from src.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
