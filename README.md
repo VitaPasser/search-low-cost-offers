@@ -1,7 +1,7 @@
 # Search Low-Cost Offers
 
 An automated scraper and aggregator for budget real estate rental offers from popular platforms:
-* **Bucharest (Romania):** [olx.ro](https://www.olx.ro), [imobiliare.ro](https://www.imobiliare.ro) (budget €400–€450)
+* **Bucharest (Romania):** [olx.ro](https://www.olx.ro), [imobiliare.ro](https://www.imobiliare.ro) (budget €400, €450)
 * **Łódź (Poland):** [otodom.pl](https://www.otodom.pl) (budget €400)
 
 ---
