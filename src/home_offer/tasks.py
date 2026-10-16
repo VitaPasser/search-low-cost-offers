@@ -24,7 +24,7 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
         name="daily grab house offers at 18:30"
     )
     sender.add_periodic_task(
-        crontab(hour=18, minute=30),
+        crontab(hour=18, minute=40),
         grab_house_offers_otodom.s(),
         name="daily grab house offers at 18:40"
     )
