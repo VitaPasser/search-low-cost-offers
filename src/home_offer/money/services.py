@@ -51,6 +51,6 @@ def money_to_euro(money_in_other_currency: MoneyDTO) -> MoneyDTO:
             amount = money_in_other_currency.amount / EURO_TO_ZLOTY_EXCHANGE_RATE
             return MoneyDTO(amount=amount, currency=currency)
         case Currency.RON:
-            currency = Currency.RON
+            currency = Currency.EUR
             amount = money_in_other_currency.amount / EURO_TO_RON_EXCHANGE_RATE
             return MoneyDTO(amount=amount, currency=currency)
