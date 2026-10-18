@@ -137,7 +137,7 @@ class DownloadHtmlHomeOffersService:
         session = await self._load_session()
 
         async with Stealth().use_async(async_playwright()) as p:
-            browser = await p.chromium.launch(headless=True)
+            browser = await p.firefox.launch(headless=True)
             net_service = NetworkService(browser, session)
 
             try:
@@ -163,7 +163,7 @@ class DownloadHtmlHomeOffersService:
         limiter = anyio.CapacityLimiter(10)
 
         async with Stealth().use_async(async_playwright()) as p:
-            browser = await p.chromium.launch(headless=True)
+            browser = await p.firefox.launch(headless=True)
             net_service = NetworkService(browser, session)
 
             try:
@@ -202,12 +202,12 @@ class DownloadHtmlHomeOffersService:
 
     async def save_session(self):
         async with Stealth().use_async(async_playwright()) as p:
-            browser = await p.chromium.launch(headless=False)
+            browser = await p.firefox.launch(headless=False)
             context = await browser.new_context()
             page = await context.new_page()
 
             print("[*] Go to the page in GUI mode...")
-            await page.goto(self.url_list)
+            await page.goto(self.domain_url)
             await page.wait_for_timeout(5000)
 
             cookies = await context.cookies()
